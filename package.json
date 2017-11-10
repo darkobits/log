@@ -1,0 +1,60 @@
+{
+  "name": "@darkobits/log",
+  "version": "0.0.0",
+  "description": "The logger that darkobits uses.",
+  "license": "WTFPL",
+  "contributors": [
+    {
+      "name": "Joshua Martin",
+      "email": "joshua@frontlawn.net"
+    }
+  ],
+  "keywords": [
+    "log",
+    "npm",
+    "unique"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/darkobits/log.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/index.js",
+  "scripts": {
+    "clean": "rimraf dist",
+    "lint": "xo",
+    "prebuild": "run-p clean lint",
+    "build": "babel src --out-dir dist",
+    "build:watch": "npm run build -- --watch",
+    "prepare": "npm run build",
+    "prepublishOnly": "run-s lint build",
+    "prebump": "npm run prepublishOnly",
+    "bump": "standard-version",
+    "bump:beta": "standard-version --prerelease=beta"
+  },
+  "dependencies": {
+    "@darkobits/import-unique": "^1.0.0",
+    "npmlog": "^4.1.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.6.1",
+    "npm-run-all": "^4.1.1",
+    "rimraf": "^2.6.2",
+    "standard-version": "^4.2.0",
+    "xo": "^0.18.2"
+  },
+  "xo": {
+    "env": [
+      "node"
+    ],
+    "space": true,
+    "rules": {
+      "capitalized-comments": "off",
+      "import/no-unassigned-import": "off",
+      "no-multiple-empty-lines": "off"
+    }
+  }
+}
