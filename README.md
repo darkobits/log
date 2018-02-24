@@ -1,16 +1,16 @@
+![log](https://user-images.githubusercontent.com/441546/36626870-6736615a-18ef-11e8-8e5e-1c737f0fbb40.png)
+
 [![][npm-img]][npm-url] [![][travis-img]][travis-url] [![][david-img]][david-url] [![][david-dev-img]][david-dev-url] [![][cc-img]][cc-url] [![][xo-img]][xo-url]
 
-# log
+A wrapper around the wonderful [`npmlog`](https://github.com/npm/npmlog) that allows for the creation of unique instances.
 
-A thin wrapper around the wonderful [`npmlog`](https://github.com/npm/npmlog) that creates unique instances.
-
-## Installation
+## Install
 
 ```bash
-$ npm install --save @darkobits/log
+$ npm i @darkobits/log
 ```
 
-## Usage
+## Use
 
 This package's default export is a factory function with the following signature:
 
