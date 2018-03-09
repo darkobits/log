@@ -1,14 +1,9 @@
 {
   "name": "@darkobits/log",
-  "version": "1.0.0",
   "description": "The logger that darkobits uses.",
+  "version": "1.0.0",
+  "author": "darkobits",
   "license": "WTFPL",
-  "contributors": [
-    {
-      "name": "Joshua Martin",
-      "email": "joshua@frontlawn.net"
-    }
-  ],
   "keywords": [
     "log",
     "npm",
@@ -21,12 +16,12 @@
   "files": [
     "dist"
   ],
-  "main": "./dist/index.js",
+  "main": "dist/index.js",
   "scripts": {
     "clean": "rimraf dist",
     "lint": "xo",
     "prebuild": "run-p clean lint",
-    "build": "babel src --out-dir dist",
+    "build": "babel src --out-dir=dist --source-maps --no-comments",
     "build:watch": "npm run build -- --watch",
     "prepare": "npm run build",
     "prepublishOnly": "run-s lint build",
@@ -43,8 +38,8 @@
     "babel-preset-env": "^1.6.1",
     "npm-run-all": "^4.1.1",
     "rimraf": "^2.6.2",
-    "standard-version": "^4.2.0",
-    "xo": "^0.18.2"
+    "standard-version": "^4.3.0",
+    "xo": "^0.20.3"
   },
   "xo": {
     "env": [
