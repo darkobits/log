@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="1.1.2"></a>
+## [1.1.2](https://github.com/darkobits/log/compare/v1.1.0...v1.1.2) (2018-06-21)
+
+
+### Bug Fixes
+
+* Update "main" field. ([41cc680](https://github.com/darkobits/log/commit/41cc680))
+
+
+
 <a name="1.1.1"></a>
 ## [1.1.1](https://github.com/darkobits/log/compare/v1.1.0...v1.1.1) (2018-06-21)
 
