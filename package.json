@@ -16,7 +16,7 @@
   "files": [
     "dist"
   ],
-  "main": "dist/index.js",
+  "main": "dist/log.js",
   "scripts": {
     "clean": "rimraf dist",
     "check:styles": "tslint --project tsconfig.json --format codeFrame",
