@@ -17,10 +17,13 @@
 
 		// Disallows unused imports, variables, functions, classes, type parameters,
 		// and more.
-		"no-unused": [true, "unused-catch-binding"],
+		"no-unused": false,
 
 		// Allow shadowing variable declarations.
 		"no-shadowed-variable": false,
+
+		// Allow invocation of require(), used heavily in this package's tests.
+		"no-require-imports": false,
 
 		// Allow variable names in lowerCamelCase, PascalCase, and UPPER_CASE.
 		// Additionally, ban the use of reserved TypeScript keywords.

@@ -1,4 +1,6 @@
 // @ts-ignore
+import env from '@darkobits/env';
+// @ts-ignore
 import importUnique from '@darkobits/import-unique';
 
 
@@ -9,10 +11,10 @@ export default function NpmLogFactory(heading?: string, level?: string) {
   // Unique instance of npmlog.
   const log = importUnique('npmlog');
 
-  const {LOG_LEVEL} = process.env;
+  const LOG_LEVEL = env('LOG_LEVEL');
 
   // Predicate which returns true if npmlog has the provided log level.
-  const hasLevel = (l: string) => Object.keys(log.levels).includes(l);
+  const hasLevel = (level: any) => Object.keys(log.levels).includes(level);
 
   // Optionally set the heading.
   if (heading) {
