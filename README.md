@@ -4,6 +4,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/@darkobits/log"><img src="https://img.shields.io/npm/v/@darkobits/log.svg?style=flat-square"></a>
   <a href="https://travis-ci.org/darkobits/log"><img src="https://img.shields.io/travis/darkobits/log.svg?style=flat-square"></a>
+  <a href="https://www.codacy.com/app/darkobits/log"><img src="https://img.shields.io/codacy/coverage/b64cfd79c4994acf8b31ff10b6d0ac87.svg?style=flat-square"></a>
   <a href="https://david-dm.org/darkobits/log"><img src="https://img.shields.io/david/darkobits/log.svg?style=flat-square"></a>
   <a href="https://github.com/conventional-changelog/standard-version"><img src="https://img.shields.io/badge/conventional%20commits-1.0.0-027dc6.svg?style=flat-square"></a>
   <a href="https://github.com/sindresorhus/xo"><img src="https://img.shields.io/badge/code_style-XO-e271a5.svg?style=flat-square"></a>
@@ -88,21 +89,3 @@ And get the following output:
   <br>
   <img width="22" height="22" src="https://cloud.githubusercontent.com/assets/441546/25318539/db2f4cf2-2845-11e7-8e10-ef97d91cd538.png">
 </p>
-
-[npm-img]: https://img.shields.io/npm/v/@darkobits/log.svg?style=flat-square
-[npm-url]: https://www.npmjs.com/package/@darkobits/log
-
-[travis-img]: https://img.shields.io/travis/darkobits/log.svg?style=flat-square
-[travis-url]: https://travis-ci.org/darkobits/log
-
-[david-img]: https://img.shields.io/david/darkobits/log.svg?style=flat-square
-[david-url]: https://david-dm.org/darkobits/log
-
-[david-dev-img]: https://img.shields.io/david/dev/darkobits/log.svg?style=flat-square
-[david-dev-url]: https://david-dm.org/darkobits/log?type=dev
-
-[cc-img]: https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg?style=flat-square
-[cc-url]: https://github.com/conventional-changelog/standard-version
-
-[xo-img]: https://img.shields.io/badge/code_style-XO-e271a5.svg?style=flat-square
-[xo-url]: https://github.com/sindresorhus/xo
