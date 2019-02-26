@@ -1,7 +1,6 @@
-// @ts-ignore
 import env from '@darkobits/env';
-// @ts-ignore
 import importUnique from '@darkobits/import-unique';
+import chalk from 'chalk';
 
 
 /**
@@ -10,6 +9,9 @@ import importUnique from '@darkobits/import-unique';
 export default function NpmLogFactory(heading?: string, level?: string) {
   // Unique instance of npmlog.
   const log = importUnique('npmlog');
+
+  // Attach a unique chalk instance to the logger.
+  log.chalk = new chalk.constructor();
 
   const LOG_LEVEL = env('LOG_LEVEL');
 

@@ -26,6 +26,7 @@
   "dependencies": {
     "@darkobits/env": "^0.1.0",
     "@darkobits/import-unique": "^1.0.2",
+    "chalk": "^2.4.2",
     "npmlog": "^4.1.2"
   },
   "devDependencies": {
