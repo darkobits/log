@@ -1,9 +1,4 @@
-// @ts-ignore
-import {expect} from 'chai';
-import mock from 'mock-require';
-import sinon from 'sinon';
 import LogFactory from './log';
-
 
 
 describe('log', () => {
@@ -11,12 +6,14 @@ describe('log', () => {
     const headingA = 'labelA';
     const instanceA = LogFactory(headingA);
 
+    jest.resetModules();
+
     const headingB = 'labelB';
     const instanceB = LogFactory(headingB);
 
-    expect(instanceA).not.equal(instanceB);
-    expect(instanceA.heading).not.equal(headingB);
-    expect(instanceB.heading).not.equal(headingA);
+    expect(instanceA).not.toEqual(instanceB);
+    expect(instanceA.heading).not.toBe(instanceB.heading);
+    expect(instanceB.heading).not.toBe(instanceA.heading);
   });
 
   describe('when LOG_LEVEL is set', () => {
@@ -32,7 +29,7 @@ describe('log', () => {
         process.env.LOG_LEVEL = LOG_LEVEL;
 
         const logger = LogFactory('');
-        expect(logger.level).to.equal(LOG_LEVEL);
+        expect(logger.level).toBe(LOG_LEVEL);
       });
     });
 
@@ -42,7 +39,7 @@ describe('log', () => {
         process.env.LOG_LEVEL = LOG_LEVEL;
 
         const logger = LogFactory('');
-        expect(logger.level).not.to.equal(LOG_LEVEL);
+        expect(logger.level).not.toBe(LOG_LEVEL);
       });
     });
 
@@ -57,7 +54,7 @@ describe('log', () => {
         const LOG_LEVEL = 'error';
         const logger = LogFactory('', LOG_LEVEL);
 
-        expect(logger.level).to.equal(LOG_LEVEL);
+        expect(logger.level).toBe(LOG_LEVEL);
       });
     });
 
@@ -67,33 +64,32 @@ describe('log', () => {
 
         expect(() => {
           LogFactory('', LOG_LEVEL);
-        }).to.throw(`Unsupported log level: "${LOG_LEVEL}".`);
+        }).toThrow(`Unsupported log level: "${LOG_LEVEL}".`);
       });
     });
   });
 
   describe('when provided an Error', () => {
+    const logLevel = 'foo';
+    const logMethodSpy = jest.fn();
+
+    beforeEach(() => {
+      jest.doMock('npmlog', () => {
+        return {
+          levels: {
+            [logLevel]: true
+          },
+          [logLevel]: logMethodSpy
+        };
+      });
+    });
+
     it('should only log its stack', () => {
-      const logLevel = 'foo';
-      const logMethodSpy = sinon.spy();
-
-      const npmlogMock = {
-        levels: {
-          [logLevel]: true
-        },
-        [logLevel]: logMethodSpy
-      };
-
-      mock('npmlog', npmlogMock);
-
-      const LogFactory = require('./log').default;
+      const LogFactory = require('./log').default; // tslint:disable-line no-require-imports no-shadowed-variable
       const logger = LogFactory('');
-
       const err = new Error();
-
       logger[logLevel]('prefix', err);
-
-      expect(logMethodSpy.getCall(0).args[1]).to.equal(err.stack);
+      expect(logMethodSpy.mock.calls[0][1]).toBe(err.stack);
     });
   });
 });

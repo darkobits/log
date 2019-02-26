@@ -14,7 +14,7 @@ export default function NpmLogFactory(heading?: string, level?: string) {
   const LOG_LEVEL = env('LOG_LEVEL');
 
   // Predicate which returns true if npmlog has the provided log level.
-  const hasLevel = (level: any) => Object.keys(log.levels).includes(level);
+  const hasLevel = (level: any) => Object.keys(log.levels).includes(level); // tslint:disable-line no-shadowed-variable
 
   // Optionally set the heading.
   if (heading) {
@@ -34,13 +34,11 @@ export default function NpmLogFactory(heading?: string, level?: string) {
 
   // Replace each log method with one that, when provided an instance of Error,
   // simply logs its stack.
-  Object.keys(log.levels).forEach((level: string) => {
+  Object.keys(log.levels).forEach((level: string) => { // tslint:disable-line no-shadowed-variable
     const origMethod = log[level];
 
     log[level] = (prefix: string, ...args: Array<any>) => {
-      return Reflect.apply(origMethod, log, [prefix, ...args.map(arg => {
-        return arg instanceof Error ? arg.stack : arg;
-      })]);
+      return Reflect.apply(origMethod, log, [prefix, ...args.map(arg => arg instanceof Error ? arg.stack : arg)]);
     };
   });
 
