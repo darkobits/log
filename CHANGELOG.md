@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+# [1.2.0](https://github.com/darkobits/log/compare/v1.1.3...v1.2.0) (2019-02-26)
+
+
+### Features
+
+* Add chalk. ([02ad4a6](https://github.com/darkobits/log/commit/02ad4a6))
+
+
+
 <a name="1.1.3"></a>
 ## [1.1.3](https://github.com/darkobits/log/compare/v1.1.2...v1.1.3) (2018-06-21)
 
