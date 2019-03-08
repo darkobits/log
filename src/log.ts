@@ -1,12 +1,13 @@
 import env from '@darkobits/env';
 import importUnique from '@darkobits/import-unique';
 import chalk from 'chalk';
+import {Log} from './etc/types';
 
 
 /**
  * Imports a unique copy of "npmlog", optionally setting the heading and level.
  */
-export default function NpmLogFactory(heading?: string, level?: string) {
+export default function NpmLogFactory(heading?: string, level?: string): Log {
   // Unique instance of npmlog.
   const log = importUnique('npmlog');
 
