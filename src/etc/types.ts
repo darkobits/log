@@ -40,37 +40,37 @@ export interface Log {
   /**
    * Generic log function. Requires a level as the first parameter.
    */
-  log(level: LogLevels | string, prefix: string, message: string, ...args: Array<any>): void;
+  log(level: LogLevels | string, prefix: string, message: any, ...args: Array<any>): void;
 
   /**
    * Log a message at the "silly" log level.
    */
-  silly(prefix: string, message: string, ...args: Array<any>): void;
+  silly(prefix: string, message: any, ...args: Array<any>): void;
 
   /**
    * Log a message at the "verbose" log level.
    */
-  verbose(prefix: string, message: string, ...args: Array<any>): void;
+  verbose(prefix: string, message: any, ...args: Array<any>): void;
 
   /**
    * Log a message at the "info" log level.
    */
-  info(prefix: string, message: string, ...args: Array<any>): void;
+  info(prefix: string, message: any, ...args: Array<any>): void;
 
   /**
    * Log a message at the "http" log level.
    */
-  http(prefix: string, message: string, ...args: Array<any>): void;
+  http(prefix: string, message: any, ...args: Array<any>): void;
 
   /**
    * Log a message at the "warn" log level.
    */
-  warn(prefix: string, message: string, ...args: Array<any>): void;
+  warn(prefix: string, message: any, ...args: Array<any>): void;
 
   /**
    * Log a message at the "error" log level.
    */
-  error(prefix: string, message: string, ...args: Array<any>): void;
+  error(prefix: string, message: any, ...args: Array<any>): void;
 
   /**
    * Enable color on log messages.
