@@ -22,18 +22,18 @@ $ npm i @darkobits/log
 
 This package's default export is a factory function with the following signature:
 
-|Parameter|Type|Description|
-|---|---|---|
-|`heading`|`string`|(Optional) Log heading to set.|
-|`level`|`string`|(Optional) Log level to set.|
 
-Log level will be set to `process.env.LOG_LEVEL` if set. Otherwise, it will use the `npmlog` default level, `info`.
+```ts
+LogFactory(heading: string, level?: string);
+```
+
+If `level` is omitted, the log level will be set to `process.env.LOG_LEVEL` if set. Otherwise, it will use the `npmlog` default level, `info`.
 
 **Example:**
 
 > `foo.js`
 
-```js
+```ts
 import LogFactory from '@darkobits/log';
 
 // For convenience, you can set the heading and/or level via the factory function.
@@ -42,7 +42,6 @@ const log = LogFactory('foo', 'silly');
 export default function init() {
   log.silly('init', 'Hello, there!');
 }
-
 ```
 
 Using `npmlog` alone, `bar.js` below would wind up importing the same object imported by `foo.js`, with its `heading` and `level` already set. Even worse, if `bar.js` changes them and then `foo.js` logs something, the resulting output will be completely [hosed](https://www.youtube.com/embed/hdBBq56T_Gc?autoplay=1&rel=0&modestbranding=1).
@@ -50,7 +49,7 @@ Using `npmlog` alone, `bar.js` below would wind up importing the same object imp
 
 > `bar.js`
 
-```js
+```ts
 import LogFactory from '@darkobits/log';
 
 const log = LogFactory();
@@ -67,7 +66,7 @@ With this setup, we can now do the following:
 
 > `baz.js`
 
-```js
+```ts
 import init from './foo';
 import barnacles from './bar';
 
@@ -79,6 +78,14 @@ And get the following output:
 
 ![bar](https://user-images.githubusercontent.com/441546/32649476-f9b915ca-c5ae-11e7-8bc8-9d7e2542640e.jpg)
 ![foo](https://user-images.githubusercontent.com/441546/32649473-f5303614-c5ae-11e7-871f-b7c8321ffd7c.jpg)
+
+### Now With 50% More Chalk!
+
+This package comes with [`chalk`](https://github.com/chalk/chalk) included, available at `log.chalk`:
+
+```ts
+log.info('doStuff', `We did the ${log.chalk.green.bold('stuff')}, huzzah!`);
+```
 
 ## Why?
 
