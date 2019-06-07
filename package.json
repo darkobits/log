@@ -24,15 +24,15 @@
     "prepare": "nps prepare"
   },
   "dependencies": {
-    "@darkobits/env": "^0.1.0",
-    "@darkobits/import-unique": "^1.0.2",
+    "@darkobits/env": "^1.0.1",
+    "@darkobits/import-unique": "^1.0.4",
     "@types/npmlog": "^4.1.1",
     "chalk": "^2.4.2",
     "npmlog": "^4.1.2"
   },
   "devDependencies": {
-    "@darkobits/ts-unified": "~1.1.5",
-    "@types/jest": "^24.0.9",
-    "@types/node": "^11.9.5"
+    "@darkobits/ts-unified": "^1.6.0",
+    "@types/jest": "^24.0.13",
+    "@types/node": "^11.13.13"
   }
 }
