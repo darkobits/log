@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.0](https://github.com/darkobits/log/compare/v1.2.3...v2.0.0-beta.0) (2019-07-09)
+
+
+### refactor
+
+* Remove 'npmlog' dependency. ([f0dab2c](https://github.com/darkobits/log/commit/f0dab2c))
+
+
+### BREAKING CHANGES
+
+* Due to the significance of this re-write, this update will entail a major version bump.
+
+
+
 ### [1.2.3](https://github.com/darkobits/log/compare/v1.2.2...v1.2.3) (2019-06-07)
 
 
