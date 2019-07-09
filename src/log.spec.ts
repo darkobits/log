@@ -144,13 +144,6 @@ describe('Log', () => {
   });
 
   describe('#isLevelAtLeast', () => {
-    describe('when passed `silent`', () => {
-      it('should return `false`', () => {
-        const log = LogFactory();
-        expect(log.isLevelAtLeast('silent')).toBe(false);
-      });
-    });
-
     describe('when provided a valid log level', () => {
       const log = LogFactory({level: 'info'});
 

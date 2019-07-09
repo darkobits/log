@@ -14,6 +14,10 @@ export const DEFAULT_PREFIX_STYLE: StyleObject = {
 
 
 export const DEFAULT_LOG_LEVELS: {[key: string]: LevelDescriptor} = {
+  silent: {
+    level: -Infinity,
+    label: ''
+  },
   error: {
     level: 1000,
     label: 'ERR!',
@@ -74,9 +78,5 @@ export const DEFAULT_LOG_LEVELS: {[key: string]: LevelDescriptor} = {
       fg: 'black',
       bg: {red: 204, green: 204, blue: 204}
     }
-  },
-  silent: {
-    level: Infinity,
-    label: ''
   }
 };
