@@ -26,7 +26,8 @@
   "dependencies": {
     "@darkobits/env": "^1.0.1",
     "chalk": "^2.4.2",
-    "deepmerge": "^3.3.0"
+    "deepmerge": "^3.3.0",
+    "over-9000": "^9000.1.0"
   },
   "devDependencies": {
     "@darkobits/ts-unified": "^3.0.2",

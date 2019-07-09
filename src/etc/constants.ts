@@ -1,3 +1,4 @@
+import OVER_9000 from 'over-9000';
 import {LevelDescriptor, StyleObject} from 'etc/types';
 
 
@@ -13,65 +14,69 @@ export const DEFAULT_PREFIX_STYLE: StyleObject = {
 
 
 export const DEFAULT_LOG_LEVELS: {[key: string]: LevelDescriptor} = {
-  silly: {
-    level: 0,
-    label: 'sill',
+  error: {
+    level: 1000,
+    label: 'ERR!',
     style: {
-      fg: 'black',
-      bg: {red: 204, green: 204, blue: 204}
-    }
-  },
-  verbose: {
-    level: 100,
-    label: 'verb',
-    style: {
-      fg: 'royalblue',
-      bg: 'black'
-    }
-  },
-  info: {
-    level: 200,
-    label: 'info',
-    style: {
-      fg: 'limegreen'
-    }
-  },
-  timing: {
-    level: 300,
-    label: 'timing',
-    style: {
-      fg: 'limegreen'
-    }
-  },
-  http: {
-    level: 400,
-    label: 'http',
-    style: {
-      fg: 'limegreen'
-    }
-  },
-  notice: {
-    level: 500,
-    label: 'notice',
-    style: {
-      fg: 'royalblue',
+      fg: 'crimson',
       bg: 'black'
     }
   },
   warn: {
-    level: 600,
+    level: 2000,
     label: 'WARN',
     style: {
       fg: 'black',
       bg: {red: 230, green: 230, blue: 0}
     }
   },
-  error: {
-    level: 700,
-    label: 'ERR!',
+  notice: {
+    level: 3000,
+    label: 'notice',
     style: {
-      fg: 'crimson',
+      fg: 'royalblue',
       bg: 'black'
     }
+  },
+  http: {
+    level: 4000,
+    label: 'http',
+    style: {
+      fg: 'limegreen'
+    }
+  },
+  timing: {
+    level: 5000,
+    label: 'timing',
+    style: {
+      fg: 'limegreen'
+    }
+  },
+  info: {
+    level: 6000,
+    label: 'info',
+    style: {
+      fg: 'limegreen'
+    }
+  },
+  verbose: {
+    level: 7000,
+    label: 'verb',
+    style: {
+      fg: 'royalblue',
+      bg: 'black'
+    }
+  },
+  silly: {
+    level: OVER_9000,
+    label: 'sill',
+    style: {
+      fg: 'black',
+      bg: {red: 204, green: 204, blue: 204}
+    }
+  },
+  silent: {
+    level: Infinity,
+    label: ''
   }
 };

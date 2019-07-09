@@ -65,6 +65,8 @@ export default function LogFactory(userLogOptions?: LogOptions): Logger {
   // ----- Private Methods -----------------------------------------------------
 
   /**
+   * @private
+   *
    * Accepts a Chalk instance and a StyleObject and returns a function that when
    * provided a list of arguments, returns a string containing the styled versions
    * of the provided arguments.
@@ -124,17 +126,13 @@ export default function LogFactory(userLogOptions?: LogOptions): Logger {
   };
 
   log.isLevelAtLeast = name => {
-    if (name === 'silent') {
-      return false;
-    }
-
     const level = _logLevels[name];
 
     if (!level) {
       throw new Error(`Invalid log level: "${name}".`);
     }
 
-    return _logLevels[_levelName].level <= level.level;
+    return _logLevels[_levelName].level >= level.level;
   };
 
   log.setHeading = (heading, style = {}) => {
@@ -178,6 +176,12 @@ export default function LogFactory(userLogOptions?: LogOptions): Logger {
 
     // Add level.
     _logLevels[name] = levelOptions;
+
+    // Special-casing for the 'silent' level, which exists in the default log
+    // levels but should not have a corresponding log method.
+    if (name === 'silent') {
+      return;
+    }
 
     // Add method for level.
     const logFunction: LogFunction = (prefix, ...args) => {
