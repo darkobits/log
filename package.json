@@ -1,7 +1,7 @@
 {
   "name": "@darkobits/log",
   "description": "The logger that darkobits uses.",
-  "version": "2.0.0-beta.1",
+  "version": "2.0.0-beta.2",
   "author": "darkobits",
   "license": "WTFPL",
   "keywords": [

@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.2](https://github.com/darkobits/log/compare/v2.0.0-beta.1...v2.0.0-beta.2) (2019-07-09)
+
+
+### Bug Fixes
+
+* Update log levels. ([1dd3594](https://github.com/darkobits/log/commit/1dd3594))
+
+
+
 ## [2.0.0-beta.1](https://github.com/darkobits/log/compare/v2.0.0-beta.0...v2.0.0-beta.1) (2019-07-09)
 
 
