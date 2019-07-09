@@ -10,7 +10,7 @@
   <a href="https://github.com/sindresorhus/xo"><img src="https://img.shields.io/badge/code_style-XO-e271a5.svg?style=flat-square"></a>
 </p>
 
-A wrapper around the wonderful [`npmlog`](https://github.com/npm/npmlog) that allows for the creation of unique instances.
+A logger suitable for CLIs. Inspired by [`npmlog`](https://github.com/npm/npmlog).
 
 ## Install
 
@@ -20,76 +20,25 @@ $ npm i @darkobits/log
 
 ## Use
 
-This package's default export is a factory function with the following signature:
+This package's default export is a factory function that accepts an [options object](/src/etc/types.ts#L42-L73).
 
-
-```ts
-LogFactory(heading: string, level?: string);
-```
-
-If `level` is omitted, the log level will be set to `process.env.LOG_LEVEL` if set. Otherwise, it will use the `npmlog` default level, `info`.
+If the `level` option is omitted, the log level will be set to `process.env.LOG_LEVEL` if set. Otherwise, it will be set to `info`.
 
 **Example:**
 
-> `foo.js`
+> `my-app.ts`
 
 ```ts
 import LogFactory from '@darkobits/log';
 
-// For convenience, you can set the heading and/or level via the factory function.
-const log = LogFactory('foo', 'silly');
+const log = LogFactory({heading: 'myApp'});
 
-export default function init() {
-  log.silly('init', 'Hello, there!');
+function doStuff() {
+  log.info('doStuff', `Now you're thinking with ${log.chalk.bold('Portals')}!`);
 }
 ```
 
-Using `npmlog` alone, `bar.js` below would wind up importing the same object imported by `foo.js`, with its `heading` and `level` already set. Even worse, if `bar.js` changes them and then `foo.js` logs something, the resulting output will be completely [hosed](https://www.youtube.com/embed/hdBBq56T_Gc?autoplay=1&rel=0&modestbranding=1).
-
-
-> `bar.js`
-
-```ts
-import LogFactory from '@darkobits/log';
-
-const log = LogFactory();
-
-// You may also set the heading via the 'heading' property, per usual.
-log.heading = 'bar';
-
-export default function barnacles() {
-  log.info('barnacles', 'Aw, shucks!');
-}
-```
-
-With this setup, we can now do the following:
-
-> `baz.js`
-
-```ts
-import init from './foo';
-import barnacles from './bar';
-
-barnacles();
-init();
-```
-
-And get the following output:
-
-![bar](https://user-images.githubusercontent.com/441546/32649476-f9b915ca-c5ae-11e7-8bc8-9d7e2542640e.jpg)
-![foo](https://user-images.githubusercontent.com/441546/32649473-f5303614-c5ae-11e7-871f-b7c8321ffd7c.jpg)
-
-### Now With 50% More Chalk!
-
-This package comes with [`chalk`](https://github.com/chalk/chalk) included, available at `log.chalk`:
-
-```ts
-log.info('doStuff', `We did the ${log.chalk.green.bold('stuff')}, huzzah!`);
-```
-
-## Why?
-
-`npmlog` is great, but it was designed to be used by one package at a time. When there are multiple packages that depend on `npmlog` in the same execution context, things get wonky rather quickly. This package guarantees that each `import` gets its own instance with its own state that it can customize as it sees fit.
+For a complete description of the log object, see [`etc/types.ts`](/src/etc/types.ts#L79-L162).
 
 ## &nbsp;
 <p align="center">

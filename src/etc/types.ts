@@ -1,101 +1,162 @@
-import {Chalk} from 'chalk';
-import {LogLevels, MessageObject, StyleObject} from 'npmlog';
+import {Chalk, ChalkOptions} from 'chalk';
 
 
-export interface Log {
+/**
+ * Object representing an RGB color.
+ */
+export interface ColorObject {
+  red: number;
+  green: number;
+  blue: number;
+}
+
+
+/**
+ * Object representing the style to apply to a log message component.
+ */
+export interface StyleObject {
+  fg?: string | ColorObject;
+  bg?: string | ColorObject;
+}
+
+
+/**
+ * Object representing the configuration for a single log level.
+ */
+export interface LevelDescriptor {
+  level: number;
+  label: string;
+  style?: StyleObject;
+}
+
+
+/**
+ * Signature for log functions.
+ */
+export type LogFunction = (prefix: any, ...args: Array<any>) => void;
+
+
+/**
+ * Options object accepted by LogFactory.
+ */
+export interface LogOptions {
   /**
-   * Unique instnace of Chalk attached to each logger instance.
+   * Optional heading for all messages logged by the logger.
+   */
+  heading?: string;
+
+  /**
+   * Optional level to log at. If not set, falls back to the LOG_LEVEL
+   * environment variable or 'info'.
+   */
+  level?: string;
+
+  /**
+   * Optional style configuration for the logger.
+   */
+  style?: {
+    /**
+     * Optional style configuration for the logger's heading.
+     */
+    heading?: StyleObject;
+
+    /**
+     * Optional style configuration for log prefixes.
+     */
+    prefix?: StyleObject;
+  };
+
+  /**
+   * Optional options to configure the logger's Chalk instance.
+   */
+  chalk?: ChalkOptions;
+}
+
+
+/**
+ * Object returned by LogFactory.
+ */
+export interface Logger {
+  /**
+   * Chalk instance for the logger.
    */
   chalk: Chalk;
 
   /**
-   * The current log level.
+   * Returns the name and numeric value of the current log level.
    */
-  level: string;
+  getLevel(): {name: string; level: number};
 
   /**
-   * Style for the log prefix.
+   * Returns an object with each registered log level.
    */
-  prefixStyle: StyleObject;
+  getLevels(): {[key: string]: number};
 
   /**
-   * Style for the log heading.
+   * Sets the logger's level to the level indicated by the provided name. If the
+   * level does not exist, an error will be thrown.
    */
-  headingStyle: StyleObject;
+  setLevel(name: string): void;
 
   /**
-   * The current log heading.
+   * Returns `true` if a message at the provided log level would be logged based
+   * on the current log level.
    */
-  heading: string;
+  isLevelAtLeast(name: string): boolean;
 
   /**
-   * Output stream to write log messages to. Defaults to "process.stderr".
+   * Sets the logger's heading to the provided value. Optionally accepts a style
+   * object.
    */
-  stream: any;
-
-  record: Array<MessageObject>;
-
-  maxRecordSize: number;
+  setHeading(heading: string | undefined, style?: StyleObject): void;
 
   /**
-   * Generic log function. Requires a level as the first parameter.
+   * Adds a new level to this logger using the provided name and value.
    */
-  log(level: LogLevels | string, prefix: string, message: any, ...args: Array<any>): void;
+  addLevel(name: string, levelOptions: LevelDescriptor): void;
 
   /**
-   * Log a message at the "silly" log level.
+   * Updates the configuration for an existing log level.
    */
-  silly(prefix: string, message: any, ...args: Array<any>): void;
+  updateLevel(name: string, levelOptions: Partial<LevelDescriptor>): void;
 
   /**
-   * Log a message at the "verbose" log level.
+   * Log a message at the 'error' level.
    */
-  verbose(prefix: string, message: any, ...args: Array<any>): void;
+  error(prefix: string, ...args: Array<any>): void;
 
   /**
-   * Log a message at the "info" log level.
+   * Log a message at the 'warn' level.
    */
-  info(prefix: string, message: any, ...args: Array<any>): void;
+  warn(prefix: string, ...args: Array<any>): void;
 
   /**
-   * Log a message at the "http" log level.
+   * Log a message at the 'notice' level.
    */
-  http(prefix: string, message: any, ...args: Array<any>): void;
+  notice(prefix: string, ...args: Array<any>): void;
 
   /**
-   * Log a message at the "warn" log level.
+   * Log a message at the 'http' level.
    */
-  warn(prefix: string, message: any, ...args: Array<any>): void;
+  http(prefix: string, ...args: Array<any>): void;
 
   /**
-   * Log a message at the "error" log level.
+   * Log a message at the 'timing' level.
    */
-  error(prefix: string, message: any, ...args: Array<any>): void;
+  timing(prefix: string, ...args: Array<any>): void;
 
   /**
-   * Enable color on log messages.
+   * Log a message at the 'info' level.
    */
-  enableColor(): void;
+  info(prefix: string, ...args: Array<any>): void;
 
   /**
-   * Disable color on log messages.
+   * Log a message at the 'verbose' level.
    */
-  disableColor(): void;
+  verbose(prefix: string, ...args: Array<any>): void;
 
   /**
-   * Add a new log level to the logger.
+   * Log a message at the 'silly' level.
    */
-  addLevel(level: string, n: number, style?: StyleObject, disp?: string): void;
-
-  enableProgress(): void;
-
-  disableProgress(): void;
-
-  enableUnicode(): void;
-
-  disableUnicode(): void;
-
-  pause(): void;
-
-  resume(): void;
+  silly(prefix: string, ...args: Array<any>): void;
 }

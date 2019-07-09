@@ -3,6 +3,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "outDir": "dist",
-    "paths": {"*": ["*", "src/*"]}
-  }
+    "paths": {"*": ["*", "src/*"]},
+    "esModuleInterop": true
+  },
+  "exclude": ["src/test.ts"]
 }
