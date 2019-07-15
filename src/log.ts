@@ -1,65 +1,73 @@
-import env from '@darkobits/env';
-import chalk from 'chalk';
-import merge from 'deepmerge';
+import {Console} from 'console';
 
-import {
-  DEFAULT_LOG_LEVELS,
-  DEFAULT_HEADING_STYLE,
-  DEFAULT_PREFIX_STYLE
-} from 'etc/constants';
+import env from '@darkobits/env';
+import mask from '@darkobits/mask-string';
+import ansiEscapes from 'ansi-escapes';
+import chalk from 'chalk';
+import cliSpinners, {SpinnerName} from 'cli-spinners';
+import * as dateFns from 'date-fns';
+import merge from 'deepmerge';
+import isPlainObject from 'is-plain-object';
+import prettyMs from 'pretty-ms';
+
+import {DEFAULT_OPTIONS, DEFAULT_LEVEL_OPTIONS} from 'etc/constants';
 
 import {
   LevelDescriptor,
   Logger,
-  LogFunction,
   LogOptions,
-  StyleObject
+  StyleFunction
 } from 'etc/types';
+
+import {
+  formatError,
+  proxyStreamWrite
+} from 'lib/utils';
 
 
 /**
  * Provided an options object, returns a logger instance.
  */
-export default function LogFactory(userLogOptions?: LogOptions): Logger {
-  // Merge user options with defaults.
-  const logOptions = merge({
-    style: {
-      heading: DEFAULT_HEADING_STYLE,
-      prefix: DEFAULT_PREFIX_STYLE
-    }
-  }, userLogOptions || {});
+export default function LogFactory(userOptions: LogOptions = {}): Logger {
+  /**
+   * Logger instance.
+   */
+  const log = Object.create(null) as Logger; // tslint:disable-line no-null-keyword
 
-  // Logger instance.
-  const log = {} as Logger;
-
-
-  // ----- Private Members -----------------------------------------------------
 
   /**
    * @private
    *
-   * Name of the current log level.
+   * Configuration for the logger.
    */
-  let _levelName: string;
+  let options: LogOptions = {};
+
 
   /**
    * @private
    *
-   * Current heading for the logger.
+   * Custom console interface for the logger that will write to the indicated
+   * stream. This is a convenient way to get us nice color support when logging
+   * non-strings.
    */
-  let _heading = '';
+  let c: Console;
+
 
   /**
    * @private
    *
-   * Log levels for the current instance.
+   * Tracks whether the logger has an active spinner. Lets us ensure there is
+   * only one active spinner at any given time.
    */
-  const _logLevels: {[key: string]: LevelDescriptor} = {};
+  let hasActiveSpinner = false;
 
 
-  // ----- Public Members ------------------------------------------------------
-
-  log.chalk = chalk.constructor(logOptions.chalk);
+  /**
+   * @private
+   *
+   * Secrets that will be masked by the logger.
+   */
+  const secrets: Array<[string | RegExp, string]> = [];
 
 
   // ----- Private Methods -----------------------------------------------------
@@ -67,97 +75,82 @@ export default function LogFactory(userLogOptions?: LogOptions): Logger {
   /**
    * @private
    *
-   * Accepts a Chalk instance and a StyleObject and returns a function that when
-   * provided a list of arguments, returns a string containing the styled versions
-   * of the provided arguments.
+   * Provided a token and a function, invokes the function with the token and
+   * the logger's Chalk instance and returns the result.
    */
-  function buildStyleFunction(styleObj: StyleObject | undefined) {
-    let styler = log.chalk;
-
-    if (!styleObj) {
-      return styler;
-    }
-
-    if (styleObj.fg) {
-      if (typeof styleObj.fg === 'object') {
-        const {red, green, blue} = styleObj.fg;
-        styler = styler.rgb(red, green, blue);
-      } else {
-        styler = styler.keyword(styleObj.fg);
-      }
-    }
-
-    if (styleObj.bg) {
-      if (typeof styleObj.bg === 'object') {
-        const {red, green, blue} = styleObj.bg;
-        styler = styler.bgRgb(red, green, blue);
-      } else {
-        styler = styler.bgKeyword(styleObj.bg);
-      }
-    }
-
-    return styler;
-  }
-
-
-  // ----- Public Methods ------------------------------------------------------
-
-  log.getLevel = () => {
-    return {
-      name: _levelName,
-      level: _logLevels[_levelName].level
-    };
-  };
-
-  log.getLevels = () => {
-    return Object.entries(_logLevels).reduce((result, [name, descriptor]) => {
-      result[name] = descriptor.level;
-      return result;
-    }, {} as {[key: string]: number});
-  };
-
-  log.setLevel = name => {
-    // Throw if trying to set an invalid log level.
-    if (!Reflect.has(_logLevels, name)) {
-      throw new Error(`Invalid log level: "${name}".`);
-    }
-
-    _levelName = name;
-  };
-
-  log.isLevelAtLeast = name => {
-    const level = _logLevels[name];
-
-    if (!level) {
-      throw new Error(`Invalid log level: "${name}".`);
-    }
-
-    return _logLevels[_levelName].level >= level.level;
-  };
-
-  log.setHeading = (heading, style = {}) => {
-    if (!heading) {
-      _heading = '';
+  function styleToken(token: string | undefined, styleFn: StyleFunction | undefined) {
+    if (token === undefined) {
       return;
     }
 
-    if (typeof heading !== 'string') {
-      throw new Error(`Expected type of "heading" to be "string", got "${typeof heading}"`);
+    if (typeof styleFn !== 'function') {
+      return token;
     }
 
-    _heading = heading;
+    return styleFn(token, log.chalk);
+  }
 
-    if (style) {
-      logOptions.style.heading = merge(logOptions.style.heading || {}, style);
+
+  /**
+   * @private
+   *
+   * Applies special formatting to various kinds of arguments passed to log
+   * methods.
+   */
+  function formatLogArguments(...args: Array<any>) {
+    return args.map(arg => {
+      if (typeof arg === 'string') {
+        return arg;
+      }
+
+      if (arg instanceof Error) {
+        return formatError(log.chalk, arg);
+      }
+
+      return arg;
+    });
+  }
+
+
+  /**
+   * @private
+   *
+   * Common logic for logging an arbitrary number of arguments.
+   */
+  function logItems(level: string, ...args: Array<any>) {
+    if (!log.isLevelAtLeast(level)) {
+      return;
     }
-  };
 
-  log.addLevel = (name, levelOptions) => {
-    // Throw if trying to add a level that already exists.
-    if (_logLevels[name]) {
-      throw new Error(`Log level "${name}" already exists.`);
+    const {heading, levels, style, timestamp} = options;
+
+    if (typeof levels !== 'object') {
+      throw new Error(`Expected type of "levels" to be "object", got "${typeof levels}".`);
     }
 
+    if (typeof style !== 'object') {
+      throw new Error(`Expected type of "styles" to be "object", got "${typeof style}".`);
+    }
+
+    const lead = [
+      // Timestamp
+      timestamp ? styleToken(dateFns.format(new Date(), timestamp), style.timestamp) : false,
+      // Heading
+      styleToken(heading, style.heading),
+      // Level
+      styleToken(levels[level].label, levels[level].style)
+    ].filter(Boolean);
+
+    c.log(...lead, ...formatLogArguments(...args));
+  }
+
+
+  /**
+   * @private
+   *
+   * Adds a new level and logging method to the logger.
+   */
+  function addLevel(name: string, levelOptions: LevelDescriptor) {
     // Throw if trying to add a level whose name matches an existing property on
     // the logger instance.
     if (Reflect.has(log, name)) {
@@ -174,9 +167,6 @@ export default function LogFactory(userLogOptions?: LogOptions): Logger {
       throw new Error(`Expected type of "level" to be "number", got "${typeof levelOptions.label}".`);
     }
 
-    // Add level.
-    _logLevels[name] = levelOptions;
-
     // Special-casing for the 'silent' level, which exists in the default log
     // levels but should not have a corresponding log method.
     if (name === 'silent') {
@@ -184,44 +174,191 @@ export default function LogFactory(userLogOptions?: LogOptions): Logger {
     }
 
     // Add method for level.
-    const logFunction: LogFunction = (prefix, ...args) => {
-      if (!log.isLevelAtLeast(name)) {
-        return;
-      }
+    Reflect.set(log, name, (...args: Array<any>) => {
+      logItems(name, ...args);
+    });
+  }
 
-      const lead = [
-        _heading ? buildStyleFunction(logOptions.style.heading)(_heading) : false,
-        buildStyleFunction(_logLevels[name].style)(_logLevels[name].label),
-        prefix ? buildStyleFunction(logOptions.style.prefix)(prefix) : false
-      ].filter(Boolean);
 
-      console.error(...lead, ...args);
-    };
+  // ----- Public Methods ------------------------------------------------------
 
-    Reflect.set(log, name, logFunction);
-  };
+  log.getLevel = () => {
+    const {level, levels} = options;
 
-  log.updateLevel = (name, levelOptions) => {
-    if (!_logLevels[name]) {
-      throw new Error(`Log level "${name}" does not exist.`);
+    if (!levels) {
+      throw new Error(`Expected type of "levels" to be "object", got "${typeof levels}".`);
     }
 
-    _logLevels[name] = merge(_logLevels[name], levelOptions);
+    if (typeof level !== 'string') {
+      throw new Error(`Expected type of "level" to be "string", got "${typeof level}".`);
+    }
+
+    return {...levels[level]} as LevelDescriptor;
+  };
+
+
+  log.isLevelAtLeast = name => {
+    const {levels} = options;
+
+    if (!levels) {
+      throw new Error(`Expected type of "levels" to be "object", got "${typeof levels}".`);
+    }
+
+    const testLevel = levels[name] as LevelDescriptor;
+
+    if (!testLevel) {
+      throw new Error(`Invalid log level: "${name}".`);
+    }
+
+    return log.getLevel().level >= testLevel.level;
+  };
+
+
+  log.configure = (newConfig: Partial<LogOptions>) => {
+    options = merge<Required<LogOptions>>(options, newConfig || {}, {
+      isMergeableObject: isPlainObject
+    });
+
+    if (!options.levels) {
+      throw new Error(`Expected type of "levels" to be "object", got "${typeof options.levels}".`);
+    }
+
+    // Update log level methods.
+    Object.entries(options.levels).forEach(([name, descriptor]) => {
+      if (!Reflect.has(log, name)) {
+        addLevel(name, merge(DEFAULT_LEVEL_OPTIONS, descriptor || {}));
+      }
+    });
+  };
+
+
+  log.prefix = prefix => {
+    const {style} = options;
+
+    if (!style) {
+      return prefix;
+    }
+
+    return styleToken(prefix, style.prefix) || prefix;
+  };
+
+
+  log.eraseLastLine = () => {
+    if (typeof options.stream !== 'function') {
+      throw new Error(`Expected type of "stream" to be "function", got "${typeof options.stream}".`);
+    }
+
+    options.stream().write(ansiEscapes.eraseLines(2));
+  };
+
+
+  log.createTimer = () => {
+    const time = Date.now();
+
+    return {
+      format: (formatOptions = {}) => {
+        return prettyMs(Date.now() - time, formatOptions);
+      }
+    };
+  };
+
+
+  log.createSpinner = (spinnerName = 'dots') => {
+    const spinnerInfo = cliSpinners[spinnerName];
+
+    if (!spinnerInfo) {
+      throw new Error(`Invalid spinner name: "${spinnerName}".`);
+    }
+
+    const {frames, interval} = spinnerInfo;
+    let intervalHandle: NodeJS.Timer;
+    let curFrame = 0;
+    let isFirstFrame = true;
+
+    const start = (onFrame: Function) => {
+      if (hasActiveSpinner) {
+        throw new Error('Logger may only have one active spinner at a time.');
+      }
+
+      if (!intervalHandle) {
+        hasActiveSpinner = true;
+
+        intervalHandle = setInterval(() => {
+          // Ensures we don't erase log lines on the first iteration.
+          if (isFirstFrame) {
+            isFirstFrame = false;
+          } else {
+            log.eraseLastLine();
+          }
+
+          onFrame(frames[curFrame]);
+          curFrame = (curFrame + 1) % frames.length;
+        }, interval);
+      }
+    };
+
+    const stop = (onStop: Function) => {
+      if (intervalHandle) {
+        hasActiveSpinner = false;
+
+        clearInterval(intervalHandle);
+        log.eraseLastLine();
+        onStop();
+      }
+    };
+
+    return {start, stop};
+  };
+
+
+  log.addSecret = (secret, maskChar = '*') => {
+    secrets.push([secret, maskChar]);
   };
 
 
   // ----- Init ----------------------------------------------------------------
 
-  // Set heading style based on options/defaults.
-  log.setHeading(logOptions.heading);
+  // Apply default options.
+  log.configure(DEFAULT_OPTIONS);
 
-  // Use addLevel to add default log levels.
-  Object.entries(DEFAULT_LOG_LEVELS).forEach(([name, descriptor]) => {
-    log.addLevel(name, descriptor);
+  // Apply user-provided options.
+  log.configure(userOptions);
+
+  // Set the log level.
+  log.configure({level: userOptions.level || env('LOG_LEVEL') || 'info'});
+
+  // Configure the logger's Chalk instance.
+  log.chalk = chalk.constructor(options.chalk);
+
+  if (typeof options.stream !== 'function') {
+    throw new Error(`Expected type of "stream" to be "function", got "${typeof options.stream}".`);
+  }
+
+  const logStream = options.stream();
+
+  // Create a Proxy for the configured writable stream that will allow us to
+  // mask any secrets after log messages have been formatted by the Console
+  // instnace but before they are written to its output stream.
+  const logStreamProxy = proxyStreamWrite((message: string, cb: Function) => {
+    const newMessage = secrets.reduce<string>((messageAccumulator, [curSecret, curMaskChar]) => {
+      return mask(curSecret, messageAccumulator, curMaskChar);
+    }, message);
+
+    return [newMessage, cb];
+  }, logStream);
+
+  // Create custom Console instance. N.B. Chalk's color detection is more
+  // nuanced than Console's "isTTY" check, so we use that flag here to set color
+  // support for our Console interface.
+  c = new Console({
+    stdout: logStreamProxy,
+    ignoreErrors: true,
+    colorMode: log.chalk.enabled,
+    inspectOptions: {
+      colors: log.chalk.enabled,
+      compact: true
+    }
   });
-
-  // Set the log level to the configured level, LOG_LEVEL, or 'info'.
-  log.setLevel(logOptions.level || env('LOG_LEVEL') || 'info');
 
 
   return log;

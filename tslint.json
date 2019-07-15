@@ -2,6 +2,7 @@
 	"extends": "@darkobits/ts-unified/dist/config/tslint.json",
 	"rules": {
 		"no-redundant-jsdoc": false,
+		"prefer-method-signature": false,
 		"strict-type-predicates": false
 	}
 }
