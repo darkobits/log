@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.3](https://github.com/darkobits/log/compare/v2.0.0-beta.2...v2.0.0-beta.3) (2019-07-15)
+
+
+### Features
+
+* Add spinners, timers, secrets masking. ([d31c512](https://github.com/darkobits/log/commit/d31c512))
+
+
+
 ## [2.0.0-beta.2](https://github.com/darkobits/log/compare/v2.0.0-beta.1...v2.0.0-beta.2) (2019-07-09)
 
 
