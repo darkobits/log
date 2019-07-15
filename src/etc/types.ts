@@ -1,7 +1,11 @@
 import {Chalk, ChalkOptions} from 'chalk';
-import {SpinnerName} from 'cli-spinners';
-import prettyMs from 'pretty-ms';
+import {IS_PREFIX} from 'etc/constants';
+import {ProgressBarOptions, ProgressBar} from 'lib/progress-bar';
+import {SpinnerOptions, Spinner} from 'lib/spinner';
+import {TimerOptions, Timer} from 'lib/timer';
 
+
+// ----- Styling ---------------------------------------------------------------
 
 /**
  * Object representing an RGB color.
@@ -28,6 +32,8 @@ export interface StyleObject {
 }
 
 
+// ----- Misc ------------------------------------------------------------------
+
 /**
  * Object representing the configuration for a single log level.
  */
@@ -41,28 +47,58 @@ export interface LevelDescriptor {
 /**
  * Signature for log functions.
  */
-export type LogFunction = (...args: Array<any>) => void;
+export type LogFunction<T = void> = (...args: Array<any>) => T;
 
 
 /**
- * Object returned by #.createTimer.
+ * Object returned by the logger's `prefix` method that carries a special flag
+ * indicating it is a prefix. This is done so that when logging multi-line
+ * messages, we can extract prefixes and ensure they are inserted into each
+ * line's lead.
  */
-export interface Timer {
-  format(options?: prettyMs.Options): string;
+export interface Prefix {
+  [IS_PREFIX]: boolean;
+  toString(): string;
 }
 
 
-/**
- * Function returned by #.spinner.
- */
-export interface Spinner {
-  start(onFrame: (frame: string) => any): void;
-  stop(onStop: () => any): void;
+// ----- Interactivity ---------------------------------------------------------
+
+export interface BeginInteractiveOptions {
+  /**
+   * Callback that will be invoked at each configured interval. This function
+   * should call one of the logger's log methods once and only once to produce
+   * a new output line that will overwrite the line from the previous interval.
+   */
+  message(): any;
+
+  /**
+   * (Optional) Number of milliseconds between intervals.
+   *
+   * Default: 1000 / 30 (30 updates per second)
+   */
+  interval?: number;
 }
 
 
+export interface EndInteractiveOptions {
+  /**
+   * Callback that will be invoked to produce the final contents of the line
+   * when ending an interactive session. This function should call one of the
+   * logger's log methods once and only once to produce a new output line that
+   * will overwrite the line from the previous interval.
+   */
+  message(): any;
+}
+
+
+export type EndInteractiveFn = (options?: ((...args: Array<any>) => any) | EndInteractiveOptions) => void;
+
+
+// ----- Logger ----------------------------------------------------------------
+
 /**
- * Options object accepted by LogFactory.
+ * Options object accepted by LogFactory and #.configure.
  */
 export interface LogOptions {
   /**
@@ -70,7 +106,7 @@ export interface LogOptions {
    *
    * Default: process.stderr
    */
-  stream?: () => NodeJS.WritableStream;
+  stream: () => NodeJS.WritableStream;
 
   /**
    * Optional timestamp format. If set to `false`, timestamps will be disabled.
@@ -86,12 +122,19 @@ export interface LogOptions {
    * Optional level to log at. If not set, falls back to the LOG_LEVEL
    * environment variable or 'info'.
    */
-  level?: string;
+  level: string;
+
+  /**
+   * Whether to normalize whitespace in multi-line strings.
+   *
+   * Default: true
+   */
+  stripIndent: boolean;
 
   /**
    * Optional style configuration for the logger.
    */
-  style?: {
+  style: {
     /**
      * Formatter for timestamps.
      */
@@ -117,7 +160,7 @@ export interface LogOptions {
    * Optional custom level definitions. These will be merged with the default
    * log levels.
    */
-  levels?: {
+  levels: {
     [key: string]: Partial<LevelDescriptor>;
   };
 }
@@ -138,6 +181,14 @@ export interface Logger {
   getLevel(): LevelDescriptor;
 
   /**
+   * Returns an array of LevelDescriptors for each level registered with the
+   * logger.
+   */
+  getLevels(): {
+    [key: string]: LevelDescriptor;
+  };
+
+  /**
    * Returns `true` if a message at the provided log level would be logged based
    * on the current log level.
    */
@@ -148,7 +199,7 @@ export interface Logger {
    * configuration. This method can be used to add levels, set the current
    * level, set the current heading, update styles, etc.
    */
-  configure(newConfig: LogOptions): void;
+  configure(newConfig: Partial<LogOptions>): void;
 
 
   // ----- Utilities -----------------------------------------------------------
@@ -156,22 +207,7 @@ export interface Logger {
   /**
    * Style the provided string according to the logger's prefix style.
    */
-  prefix(prefix: string): string;
-
-  /**
-   * Create a new timer.
-   */
-  createTimer(): Timer;
-
-  /**
-   * Create a spinner;
-   */
-  createSpinner(name?: SpinnerName): Spinner;
-
-  /**
-   * Erases the last line written to the logger's stream.
-   */
-  eraseLastLine(): void;
+  prefix(prefix: string | number | boolean): Prefix;
 
   /**
    * Adds a secret to the logger. Any occurrances of matched tokens in messages
@@ -180,45 +216,68 @@ export interface Logger {
   addSecret(secret: string | RegExp, maskChar?: string): void;
 
 
+  // ----- Interactivity -------------------------------------------------------
+
+  /**
+   * Begins an interactive line session.
+   */
+  beginInteractive(options: ((...args: Array<any>) => any) | BeginInteractiveOptions): EndInteractiveFn;
+
+  /**
+   * Creates a timer.
+   */
+  createTimer(options?: TimerOptions): Timer;
+
+  /**
+   * Creates a progress bar.
+   */
+  createProgressBar(options: ProgressBarOptions): ProgressBar;
+
+  /**
+   * Creates a spinner.
+   */
+  createSpinner(options?: SpinnerOptions): Spinner;
+
+
   // ----- Default Log Methods -------------------------------------------------
 
   /**
    * Log a message at the 'error' level.
    */
-  error(prefix: string, ...args: Array<any>): void;
+  error: LogFunction;
 
   /**
    * Log a message at the 'warn' level.
    */
-  warn(prefix: string, ...args: Array<any>): void;
+  warn: LogFunction;
 
   /**
    * Log a message at the 'notice' level.
    */
-  notice(prefix: string, ...args: Array<any>): void;
+  notice: LogFunction;
 
   /**
    * Log a message at the 'http' level.
    */
-  http(prefix: string, ...args: Array<any>): void;
+  http: LogFunction;
 
   /**
    * Log a message at the 'timing' level.
    */
-  timing(prefix: string, ...args: Array<any>): void;
+  timing: LogFunction;
 
   /**
    * Log a message at the 'info' level.
    */
-  info(prefix: string, ...args: Array<any>): void;
+  info: LogFunction;
 
   /**
    * Log a message at the 'verbose' level.
    */
-  verbose(prefix: string, ...args: Array<any>): void;
+  verbose: LogFunction;
 
   /**
    * Log a message at the 'silly' level.
    */
-  silly(prefix: string, ...args: Array<any>): void;
+  silly: LogFunction;
 }

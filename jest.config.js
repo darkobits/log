@@ -1,10 +1,14 @@
 module.exports = require('@darkobits/ts-unified/dist/config/jest')({
+  coveragePathIgnorePatterns: [
+    '<rootDir>/src/etc',
+    '<rootDir>/src/testing.ts'
+  ],
   coverageThreshold: {
     global: {
-      statements: 95,
-      branches: 85,
-      functions: 95,
-      lines: 95
+      statements: 90,
+      branches: 75,
+      functions: 85,
+      lines: 90
     }
   }
 });

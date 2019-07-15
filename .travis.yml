@@ -1,13 +1,13 @@
 language: node_js
 
-node_js: 8
+node_js: 10
 
 install:
   - npm install
 
 script:
   - npm run build
-  - npx nyc --reporter=lcov npm test
+  - npx nps test.coverage
 
 after_success:
   - npx codacy-coverage -v < ./coverage/lcov.info

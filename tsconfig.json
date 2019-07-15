@@ -6,5 +6,6 @@
     "rootDir": "src",
     "paths": {"*": ["*", "src/*"]},
     "esModuleInterop": true
-  }
+  },
+  "exclude": ["src/testing2.ts", "dist", "node_modules"]
 }
