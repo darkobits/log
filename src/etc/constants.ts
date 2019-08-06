@@ -12,7 +12,7 @@ export const IS_PREFIX = Symbol('IS_PREFIX');
  */
 export const DEFAULT_LEVEL_OPTIONS: Partial<LevelDescriptor> = {
   level: 6000,
-  style: (token, chalk) => chalk.keyword('limegreen')(token as string)
+  style: (token, chalk) => chalk.keyword('limegreen')(token)
 };
 
 

@@ -84,7 +84,6 @@ describe('LogHistory', () => {
     });
 
     it('should invoke the provided callback', async () => {
-
       const cb = jest.fn(() => {
         logHistory.write(uuid());
         logHistory.write(`${uuid()}\n`);
