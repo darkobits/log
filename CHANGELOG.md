@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.7](https://github.com/darkobits/log/compare/v2.0.0-beta.6...v2.0.0-beta.7) (2019-08-06)
+
+
+### Features
+
+* Add `createPipe`. ([d867833](https://github.com/darkobits/log/commit/d867833))
+
 ## [2.0.0-beta.6](https://github.com/darkobits/log/compare/v2.0.0-beta.5...v2.0.0-beta.6) (2019-08-06)
 
 
