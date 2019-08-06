@@ -2,6 +2,8 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.5](https://github.com/darkobits/log/compare/v2.0.0-beta.4...v2.0.0-beta.5) (2019-08-06)
+
 ## [2.0.0-beta.4](https://github.com/darkobits/log/compare/v2.0.0-beta.3...v2.0.0-beta.4) (2019-08-06)
 
 
