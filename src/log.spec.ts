@@ -1,8 +1,12 @@
 import streams from 'stream';
+
 import uuid from 'uuid/v4';
+
 import {DEFAULT_CONFIG} from 'etc/config';
 import {IS_PREFIX} from 'etc/constants';
 import {Logger} from 'etc/types';
+import LogPipe from 'lib/log-pipe';
+
 import LogFactory from './log';
 
 
@@ -196,6 +200,12 @@ describe('Log', () => {
   describe('#createSpinner', () => {
     it('should return a spinner', () => {
       expect(log.createSpinner()).toBe('SPINNER');
+    });
+  });
+
+  describe('#createPipe', () => {
+    it('should return a LogPipe', () => {
+      expect(log.createPipe('info')).toBeInstanceOf(LogPipe);
     });
   });
 

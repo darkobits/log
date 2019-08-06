@@ -3,6 +3,7 @@ import util from 'util';
 
 import env from '@darkobits/env';
 import mask from '@darkobits/mask-string';
+import sleep from '@darkobits/sleep';
 import stripIndent from '@darkobits/strip-indent';
 import chalk from 'chalk';
 import * as dateFns from 'date-fns';
@@ -11,15 +12,15 @@ import isPlainObject from 'is-plain-object';
 import ow from 'ow';
 
 import {
+  DEFAULT_CONFIG,
+  DEFAULT_THEME
+} from 'etc/config';
+
+import {
   DEFAULT_FRAME_RATE,
   DEFAULT_LEVEL_OPTIONS,
   IS_PREFIX
 } from 'etc/constants';
-
-import {
-  DEFAULT_CONFIG,
-  DEFAULT_THEME
-} from 'etc/config';
 
 import {
   BeginInteractiveOptions,
@@ -36,10 +37,10 @@ import {
 
 import LogHistoryFactory, {LogHistory} from 'lib/history';
 import isDebugNamespace from 'lib/is-debug-namespace';
+import LogPipe from 'lib/log-pipe';
 import ProgressBarFactory from 'lib/progress-bar';
 import SpinnerFactory from 'lib/spinner';
 import TimerFactory from 'lib/timer';
-import sleep from '@darkobits/sleep';
 
 
 /**
@@ -251,6 +252,13 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
   // ----- Public Methods ------------------------------------------------------
 
+  /**
+   * N.B. These methods get their type definitions by virtue of being attached
+   * to the log object.
+   *
+   * See: types.ts
+   */
+
   log.getLevel = () => {
     const {level, levels} = options;
     return {...levels[level]} as LevelDescriptor;
@@ -383,6 +391,17 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
   };
 
 
+  log.createPipe = level => {
+    // Validate log level.
+    if (!Object.keys(log.getLevels()).includes(level)) {
+      throw new Error(`Invalid log level: ${level}`);
+    }
+
+    // @ts-ignore
+    return new LogPipe(log[level]);
+  };
+
+
   // ----- Init ----------------------------------------------------------------
 
   // Apply user-provided options.
@@ -390,18 +409,15 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
   // Set the log level.
   if (options.heading && isDebugNamespace(options.heading)) {
-    log.configure({
-      level: 'silly'
-    });
+    log.configure({level: 'silly'});
   } else {
-    log.configure({
-      level: userOptions.level || env('LOG_LEVEL') || 'info'
-    });
+    log.configure({level: env('LOG_LEVEL') || userOptions.level || 'info'});
   }
 
   // Create a custom Chalk instance for the logger using the provided options.
   log.chalk = chalk.constructor(options.chalk);
 
+  // Initialize a LogHistory.
   history = LogHistoryFactory({stream: options.stream()});
 
 

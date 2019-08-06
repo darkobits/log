@@ -1,3 +1,4 @@
+import os from 'os';
 import {LevelDescriptor} from 'etc/types';
 
 
@@ -20,3 +21,9 @@ export const DEFAULT_LEVEL_OPTIONS: Partial<LevelDescriptor> = {
  * How often we will re-write interactive log lines.
  */
 export const DEFAULT_FRAME_RATE = 1000 / 60;
+
+
+/**
+ * Pattern that will match the last EOL character in a string.
+ */
+export const LAST_EOL_PATTERN = new RegExp(`${os.EOL}(?!.*${os.EOL})`);

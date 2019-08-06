@@ -161,18 +161,9 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
     const originalWrite = opts.stream.write.bind(opts.stream);
 
     // @ts-ignore
-    opts.stream.write = (...args: Array<any>) => {
-      const chunk = args[0];
-
-      if (typeof chunk === 'string') {
-        if (chunk === '') {
-          return;
-        }
-
-        updateHistory(false, chunk);
-      }
-
-      Reflect.apply(originalWrite, opts.stream, args);
+    opts.stream.write = (chunk: any, cb?: ((err?: Error | null | undefined) => void)) => {
+      updateHistory(false, Buffer.from(chunk).toString('utf8'));
+      return Reflect.apply(originalWrite, opts.stream, [chunk, cb]);
     };
 
     return originalWrite;
@@ -223,23 +214,13 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
       matches.pop();
     }
 
-    let lines: Array<string> = [];
-
-    if (lastEntryIsCompleteLine()) {
-      // If the last entry in our history ends with an EOL, then we will simply
-      // add each incoming line to the end of our history (below).
-      lines = matches;
-    } else {
-      // Otherwise, append the first line to the content of the last LogLine in
-      // our history, then append each additional line (below).
-      const [first, ...rest] = matches;
-      streamHandle.history.slice(-1)[0].content = `${streamHandle.history.slice(-1)[0].content}${first}`;
-      lines = rest;
-    }
-
-    // Append lines to history using the provided interactive session ID.
-    lines.forEach(content => {
-      streamHandle.history.push({interactiveSessionId, content});
+    matches.forEach(content => {
+      if (lastEntryIsCompleteLine()) {
+        streamHandle.history.push({interactiveSessionId, content});
+      } else {
+        const lastEntry = streamHandle.history.slice(-1)[0];
+        lastEntry.content = `${lastEntry.content}${content}`;
+      }
     });
   }
 

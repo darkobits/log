@@ -38,8 +38,7 @@
     "over-9000": "^9000.1.0",
     "ow": "^0.13.2",
     "pretty-ms": "^5.0.0",
-    "strip-ansi": "^5.2.0",
-    "strip-indent": "^3.0.0"
+    "strip-ansi": "^5.2.0"
   },
   "devDependencies": {
     "@darkobits/dot-dot-dot": "^0.3.0",

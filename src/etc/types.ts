@@ -215,6 +215,12 @@ export interface Logger {
    */
   addSecret(secret: string | RegExp, maskChar?: string): void;
 
+  /**
+   * Create a pipe that will log anything written to it at the provided log
+   * level.
+   */
+  createPipe(level: string): NodeJS.WritableStream;
+
 
   // ----- Interactivity -------------------------------------------------------
 
