@@ -32,6 +32,7 @@ export interface LogLine {
 export interface StreamHandle {
   originalWrite: Function;
   history: Array<LogLine>;
+  interactiveSessionIds: Array<symbol>;
 }
 
 
@@ -88,6 +89,9 @@ export interface LogHistory {
 const streamHistories = new Map<NodeJS.WritableStream, StreamHandle>();
 
 
+let interactiveSessionIdCounter = 0;
+
+
 export default function LogHistoryFactory(opts: LogHistoryOptions) {
   /**
    * Log history instance.
@@ -102,14 +106,6 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
    * end of an interactive write.
    */
   let truncatedLines: Array<LogLine> = [];
-
-
-  /**
-   * @private
-   *
-   * Tracks whether an interactive session is ongoing.
-   */
-  let interactiveSessionIds: Array<symbol> = [];
 
 
   /**
@@ -191,7 +187,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
    */
   function getFirstInteractiveIndex(id?: symbol) {
     return streamHandle.history.findIndex(logLine => {
-      if (id !== undefined) {
+      if (id === undefined) {
         return logLine.interactiveSessionId !== false;
       }
 
@@ -210,7 +206,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
   function updateHistory(interactiveSessionId: symbol | false, lineContent: string) {
     // If there are no ongoing interactive sessions, we do not need to write
     // anything to our history.
-    if (interactiveSessionIds.length === 0) {
+    if (streamHandle.interactiveSessionIds.length === 0) {
       return;
     }
 
@@ -251,8 +247,8 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
   // ----- Public Methods ------------------------------------------------------
 
   logHistory.beginInteractiveSession = () => {
-    const interactiveSessionId = Symbol();
-    interactiveSessionIds.push(interactiveSessionId);
+    const interactiveSessionId = Symbol(`${++interactiveSessionIdCounter}`);
+    streamHandle.interactiveSessionIds.push(interactiveSessionId);
     return interactiveSessionId;
   };
 
@@ -260,7 +256,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
   logHistory.endInteractiveSession = id => {
     ow(id, 'id', ow.symbol);
 
-    if (!interactiveSessionIds.includes(id)) {
+    if (!streamHandle.interactiveSessionIds.includes(id)) {
       throw new Error('Unknown interactive session ID.');
     }
 
@@ -273,11 +269,11 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
 
     // Remove the provided ID from our list of interactive session IDs.
-    interactiveSessionIds = interactiveSessionIds.filter(curId => curId !== id);
+    streamHandle.interactiveSessionIds = streamHandle.interactiveSessionIds.filter(curId => curId !== id);
 
     // If we are ending the last outstanding interactive session, we can safely
     // truncate our history array.
-    if (interactiveSessionIds.length === 0) {
+    if (streamHandle.interactiveSessionIds.length === 0) {
       streamHandle.history = [];
     }
   };
@@ -285,7 +281,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
   logHistory.hasInteractiveSession = id => {
     ow(id, 'id', ow.symbol);
-    return interactiveSessionIds.includes(id);
+    return streamHandle.interactiveSessionIds.includes(id);
   };
 
 
@@ -294,7 +290,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
     ow(cb, 'callback', ow.function);
 
     // Ensure we were provided a valid/known interactive session ID.
-    if (!interactiveSessionIds.includes(id)) {
+    if (!streamHandle.interactiveSessionIds.includes(id)) {
       throw new Error('Unknown interactive session ID.');
     }
 
@@ -351,7 +347,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
   if (!streamHistories.has(opts.stream)) {
     const originalWrite = decorateOutputStream(opts.stream);
-    streamHistories.set(opts.stream, {originalWrite, history: []});
+    streamHistories.set(opts.stream, {originalWrite, history: [], interactiveSessionIds: []});
   }
 
   // @ts-ignore
