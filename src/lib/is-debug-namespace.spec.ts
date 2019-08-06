@@ -4,11 +4,15 @@ describe('isDebugNamespace', () => {
 
   beforeEach(() => {
     jest.doMock('@darkobits/env', () => {
-      return (varName: string) => {
+      const envFn = (varName: string) => {
         if (varName === 'DEBUG') {
           return DEBUG;
         }
       };
+
+      envFn.has = envFn;
+
+      return envFn;
     });
   });
 

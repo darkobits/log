@@ -47,7 +47,7 @@ let isDebugNamespaceRegex: RegExp;
  * flagged for debugging according to the 'DEBUG' environment variable.
  */
 export default function isDebugNamespace(testNamespace: string) {
-  if (!env('DEBUG')) {
+  if (!env.has('DEBUG')) {
     return false;
   }
 
