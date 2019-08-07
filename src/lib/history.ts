@@ -98,16 +98,6 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
    */
   const logHistory = createOrphanedObject<LogHistory>();
 
-
-  /**
-   * @private
-   *
-   * Temporary record of erased lines that will need to be re-written at the
-   * end of an interactive write.
-   */
-  let truncatedLines: Array<LogLine> = [];
-
-
   /**
    * @private
    *
@@ -141,16 +131,6 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
     const lastItemContent = streamHandle.history[streamHandle.history.length - 1].content;
     return stripAnsi(lastItemContent).endsWith(os.EOL);
-  }
-
-
-  /**
-   * @private
-   *
-   * Erases the provided number of lines in our output stream.
-   */
-  function eraseLines(numLines = 1) {
-    streamHandle.originalWrite(ansiEscapes.eraseLines(numLines + 2));
   }
 
 
@@ -281,45 +261,88 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
     }
 
     interactiveWriteId = id;
+    streamHandle.originalWrite(ansiEscapes.cursorHide);
 
     // Find the index of the first LogLine in our history that matches the
     // provided interactive session ID.
     const firstInteractiveIndex = getFirstInteractiveIndex(id);
 
+    // This array will hold the state of the history array prior to the
+    // re-write. We will use it to determine which truncated lines need to be
+    // erased and re-written following the interactive re-write.
+    let oldStreamHistory: Array<LogLine> = [];
+
+    // This array will hold all truncated log lines that will need to be
+    // re-written to the canonical history, and possibly to the output stream
+    // (if they changed) following the interactive re-write.
+    let truncatedLines: Array<LogLine> = [];
+
     if (firstInteractiveIndex !== -1) {
+      // Capture the current state of the stream history prior to performing the
+      // re-write.
+      oldStreamHistory = streamHandle.history;
+
       // If we found a line matching the provided session ID, gather a list of
       // all lines after it that do not match the provided ID. These lines will
       // be erased, and we will need to re-write them to the output stream after
       // the interactive write.
       truncatedLines = streamHandle.history.slice(firstInteractiveIndex).filter(logLine => logLine.interactiveSessionId !== id);
 
-      // Erase our output stream back to the line just before the first
-      // interactive line matching the provided ID.
-      eraseLines(streamHandle.history.length - firstInteractiveIndex - 1);
-
-      // Reset our history to match the state of the output stream.
+      // Reset the canonical stream history by deleting entries back to (and
+      // including) the interactive line(s) that is to be re-written.
       streamHandle.history = streamHandle.history.slice(0, firstInteractiveIndex);
+
+      // Move the cursor back to the first interactive line that we need to
+      // re-write.
+      streamHandle.originalWrite(ansiEscapes.cursorUp(oldStreamHistory.length - firstInteractiveIndex));
     }
 
     // Invoke the provided callback, which should perform the write operation by
-    // calling our #write method.
+    // calling our #write method. This will also append the new interactive
+    // lines to our history _and_ write them to our stream.
     cb();
 
+    if (truncatedLines.length > 0) {
+      // Create an index we will use in our pre-rewrite history array that
+      // points to the line that lies where the cursor is positioned now; just
+      // below the last line that was produced during the interactive re-write.
+      let historicalIndex = firstInteractiveIndex + streamHandle.history.length;
+
+      // For each line in our truncated lines list, compare the truncated line
+      // to the line in our pre-rewrite history. If they match, we do not need
+      // to re-write the line in our output stream, and can simply re-add it to
+      // the canonical history and move on to the next line. If they do not
+      // match, we need to erase the current line in the output stream and
+      // replace it with the truncated line.
+      for (let i = 0; i < truncatedLines.length; i++) { // tslint:disable-line prefer-for-of
+        const oldLine = oldStreamHistory[historicalIndex];
+        const truncatedLine = truncatedLines[i];
+
+        if (!oldLine || oldLine !== truncatedLine) {
+          streamHandle.originalWrite(ansiEscapes.eraseLine);
+          streamHandle.originalWrite(truncatedLine.content);
+        } else {
+          streamHandle.originalWrite(ansiEscapes.cursorDown(1));
+        }
+
+        streamHandle.history.push(truncatedLine);
+        ++historicalIndex;
+      }
+    }
+
     interactiveWriteId = false;
-
-    // Re-apply all truncated lines that were erased.
-    truncatedLines.forEach(logLine => {
-      streamHandle.originalWrite(logLine.content);
-      streamHandle.history.push(logLine);
-    });
-
-    truncatedLines = [];
+    streamHandle.originalWrite(ansiEscapes.cursorShow);
   };
 
 
   logHistory.write = content => {
     ow(content, 'content', ow.string);
     updateHistory(interactiveWriteId, content);
+
+    if (interactiveWriteId) {
+      streamHandle.originalWrite(ansiEscapes.eraseLine);
+    }
+
     streamHandle.originalWrite(content);
   };
 
@@ -333,7 +356,6 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
   // @ts-ignore
   streamHandle = streamHistories.get(opts.stream);
-
 
   return logHistory;
 }

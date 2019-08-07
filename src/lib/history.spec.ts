@@ -102,7 +102,7 @@ describe('LogHistory', () => {
       logHistory.doInteractiveWrite(id, cb);
 
       expect(cb).toHaveBeenCalled();
-      expect(mockWrite).toHaveBeenCalledTimes(8);
+      expect(mockWrite).toHaveBeenCalled();
     });
   });
 
