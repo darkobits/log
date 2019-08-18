@@ -136,6 +136,9 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
   /**
    * @private
+   *
+   * Decorates the `write` method of the configured writable stream such that
+   * any writes thereto will be captured in our history.
    */
   function decorateOutputStream(stream: NodeJS.WritableStream) {
     const originalWrite = opts.stream.write.bind(opts.stream);
@@ -153,8 +156,8 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
   /**
    * @private
    *
-   * Returns the first interactive log line with an ID matching the provided ID.
-   * If no ID was provided, returns the first interactive log line.
+   * Returns the index of the first interactive log line with an ID matching the
+   * provided ID. If no ID is provided, returns the first interactive log line.
    */
   function getFirstInteractiveIndex(id?: symbol) {
     return streamHandle.history.findIndex(logLine => {

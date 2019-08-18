@@ -17,7 +17,7 @@ export const DEFAULT_THEME: Partial<LogOptions> = {
       style: (token, chalk) => chalk.keyword('black').bgKeyword('gold')(token)
     },
     notice: {
-      style: (token, chalk) => chalk.keyword('turquoise').bgKeyword('black')(token)
+      style: (token, chalk) => chalk.keyword('orange').bgKeyword('black')(token)
     },
     http: {
       style: (token, chalk) => chalk.keyword('lightseagreen')(token)
@@ -26,10 +26,13 @@ export const DEFAULT_THEME: Partial<LogOptions> = {
       style: (token, chalk) => chalk.keyword('dodgerblue')(token)
     },
     info: {
-      style: (token, chalk) => chalk.keyword('green')(token)
+      style: (token, chalk) => chalk.keyword('limegreen')(token)
     },
     verbose: {
       style: (token, chalk) => chalk.keyword('royalblue').bgKeyword('black')(token)
+    },
+    debug: {
+      style: (token, chalk) => chalk.keyword('gray')(token)
     },
     silly: {
       style: (token, chalk) => chalk.keyword('black').bgKeyword('gainsboro')(token)
@@ -80,6 +83,10 @@ export const DEFAULT_CONFIG: Partial<LogOptions> = {
     verbose: {
       level: 7000,
       label: 'verb'
+    },
+    debug: {
+      level: 8000,
+      label: 'debug'
     },
     silly: {
       level: OVER_9000,
