@@ -80,19 +80,9 @@ export interface BeginInteractiveOptions {
   interval?: number;
 }
 
+export type EndInteractiveOptions = Omit<BeginInteractiveOptions, 'interval'>;
 
-export interface EndInteractiveOptions {
-  /**
-   * Callback that will be invoked to produce the final contents of the line
-   * when ending an interactive session. This function should call one of the
-   * logger's log methods once and only once to produce a new output line that
-   * will overwrite the line from the previous interval.
-   */
-  message(): any;
-}
-
-
-export type EndInteractiveFn = (options?: ((...args: Array<any>) => any) | EndInteractiveOptions) => void;
+export type EndInteractiveFn = (options?: (() => any) | EndInteractiveOptions) => void;
 
 
 // ----- Logger ----------------------------------------------------------------
@@ -181,7 +171,7 @@ export interface Logger {
   getLevel(): LevelDescriptor;
 
   /**
-   * Returns an array of LevelDescriptors for each level registered with the
+   * Returns an object of LevelDescriptors for each level registered with the
    * logger.
    */
   getLevels(): {
@@ -227,7 +217,7 @@ export interface Logger {
   /**
    * Begins an interactive line session.
    */
-  beginInteractive(options: ((...args: Array<any>) => any) | BeginInteractiveOptions): EndInteractiveFn;
+  beginInteractive(options: (() => any) | BeginInteractiveOptions): EndInteractiveFn;
 
   /**
    * Creates a timer.

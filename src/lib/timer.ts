@@ -16,6 +16,9 @@ export interface Timer {
    */
   reset(): void;
 
+  /**
+   * Renders the current elapsed time using `pretty-ms`.
+   */
   toString(): string;
 }
 
@@ -36,7 +39,7 @@ export default function TimerFactory(userTimerOptions: TimerOptions = {}) {
   const timer = createOrphanedObject<Timer>();
 
   // Merge and validate options.
-  const timerOptions = merge<Required<TimerOptions>>(DEFAULT_OPTIONS, userTimerOptions);
+  const timerOptions = merge<TimerOptions>(DEFAULT_OPTIONS, userTimerOptions);
   ow(timerOptions.secondsDecimalDigits, 'secondsDecimalDigits', ow.any(ow.undefined, ow.number.integer.greaterThanOrEqual(0)));
   ow(timerOptions.millisecondsDecimalDigits, 'millisecondsDecimalDigits', ow.any(ow.undefined, ow.number.integer.greaterThanOrEqual(0)));
   ow(timerOptions.keepDecimalsOnWholeSeconds, 'keepDecimalsOnWholeSeconds', ow.any(ow.undefined, ow.boolean));

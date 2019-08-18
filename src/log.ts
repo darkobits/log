@@ -387,6 +387,8 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
 
   log.addSecret = (secret, maskChar = '*') => {
+    ow(secret, 'secret', ow.any(ow.string, ow.regExp));
+    ow(maskChar, 'mask character', ow.string.minLength(1).maxLength(1));
     secrets.push([secret, maskChar]);
   };
 

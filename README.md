@@ -10,15 +10,24 @@
   <a href="https://github.com/sindresorhus/xo"><img src="https://img.shields.io/badge/code_style-XO-e271a5.svg?style=flat-square"></a>
 </p>
 
-A logger suitable for CLIs. Inspired by [`npmlog`](https://github.com/npm/npmlog).
+A logger suitable for CLIs.
+
+
+## Table of Contents
+
+* Install
+* Basic Usage
+* Debug Support
+* API
+* Caveats
 
 ## Install
 
-```bash
+```
 $ npm i @darkobits/log
 ```
 
-## Use
+## Basic Usage
 
 This package's default export is a factory function that accepts an [options object](/src/etc/types.ts#L42-L73).
 
@@ -38,7 +47,207 @@ function doStuff() {
 }
 ```
 
-For a complete description of the log object, see [`etc/types.ts`](/src/etc/types.ts#L79-L162).
+## API
+
+This section documents the properties and methods of each logger instance. The examples below assume a logger (referred to as `log`) has already been created.
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `.chalk`
+
+Reference to the [chalk](https://github.com/chalk/chalk) instance created by the logger. The logger creates a custom chalk instance for configurability and to avoid onflicting with the global instance.
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `configure(config: Partial<LogOptions>): void`
+
+Configure/re-configure the logger instance. The provided object will be deep-merged with the logger's existing configuration. This method can therefore be used to accomplish things like:
+
+* Adding log levels.
+* Changing the styling for existing log levels and other tokens.
+* Changing the log level.
+
+**Example:**
+
+```ts
+// Change the log level.
+log.configure({level: 'verbose'});
+
+// Add a new log level.
+log.configure({
+  levels: {
+    foo: {
+      level: 5000,
+      label: 'FOO!',
+      style: (token, chalk) => chalk.keyword('blue')(token)
+    }
+  }
+});
+```
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `getLevel(): LevelDescriptor`
+
+Returns a [`LevelDescriptor`](/src/etc/types.ts) object for the current log level.
+
+**Example:**
+
+Assuming the current level is `info`:
+
+```ts
+const curLevel = log.getLevel();
+
+curLevel.label //=> 'info'
+curLevel.level //=> 6000
+curLevel.style //=> StyleFunction
+```
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `getLevels(): {[key: string]: LevelDescriptor}`
+
+Returns an object mapping log level names (ex: `info`) to `LevelDescriptor` objects for each configured level. Note: The logger does not implement a method for the `silent` level.
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `isLevelAtLeast(name: string): boolean`
+
+Returns `true` if a message written at the provided log level would be written to the output stream based on the current log level.
+
+**Example:**
+
+```ts
+log.configure({level: 'info'});
+log.isLevelAtLeast('error') //=> true
+log.isLevelAtLeast('silly') //=> false
+```
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `prefix(prefix: string | number | boolean): Prefix`
+
+Applies a prefix, styled according to the logger's `style.prefix` options, to each line written to the output stream for the current call.
+
+**Example:**
+
+```ts
+log.info(log.prefix('someFunction'), 'Hello\nworld.');
+```
+
+> screenshot(s) here.
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `addSecret(secret: string | RegExp, maskChar = '*'): void`
+
+This method may be used to ensure passwords and other sensitive information is not inadvertently written to the output stream. It accepts either a string literal or a regular expression. By default, secrets are masked using the `*` character.
+
+**Example:**
+
+```ts
+const user = {
+  name: 'Frodo',
+  password: 'shire'
+};
+
+log.addSecret(user.password);
+```
+
+> screenshot(s) here.
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `createPipe(level: string): NodeJS.WritableStream`
+
+Creates a writable stream that will output any data as messages at the indicated log level. Useful for displaying the output of a child process, for example.
+
+In the following example, all output written to stderr by the child process will be written as log messages at the `verbose` level.
+
+**Example:**
+
+```ts
+import execa from 'execa';
+
+log.info('Starting child process...');
+const childProcess = execa('echo "foo"', {stderr: 'pipe'});
+childProcess.stderr.pipe(log.createPipe('verbose'));
+await childProcess;
+log.info('Done.');
+```
+
+> screenshot(s) here.
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `beginInteractive(): Function`
+
+Begins a new interactive session and returns a function that may be invoked to end the interactive session. This method accepts an options object with the following shape:
+
+**Example:**
+
+```ts
+interface BeginInteractiveOptions {
+  /**
+   * Function that will be called to render each frame/update during the session. This
+   * function should call one or more log methods to produce the desired output.
+   */
+  message: () => any;
+
+  /**
+   * (Optional) Number of milliseconds between frames/updates.
+   *
+   * Default: 1000 / 30
+   */
+  interval?: number;
+}
+```
+
+If not using a custom update interval, this method may be passed the `message` function as its single argument.
+
+**Example:**
+
+```ts
+const spinner = log.createSpinner();
+const time = log.createTimer();
+const endInteractive = log.beginInteractive(() => log.info(`${spinner} Please stand by...`));
+
+// Some time later...
+
+endInteractive(() => log.info(`Done in ${time}.`));
+```
+
+> screenshot(s) here
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `createTimer(options?: TimerOptions): Timer`
+
+Creates a timer/stopwatch that starts immediately. The timer object may be placed directly into an interpolated string literal and will render its current value. Formatting is facilitated using [`pretty-ms`](https://github.com/sindresorhus/pretty-ms). This method's options are identical to those of `pretty-ms`.
+
+Additionally, the timer object has a `reset()` method that may be invoked to reset the timer to zero.
+
+**Example:**
+
+```ts
+const timer = log.createTimer();
+
+// Some time later...
+
+log.info(`Done in ${timer}.`);
+```
+
+> screenshot(s) here.
+
+<a href="#top"><img src="https://user-images.githubusercontent.com/441546/63230477-f5e84680-c1c1-11e9-8c2d-6d2079cee662.png"></a>
+
+### `createProgressBar(options: ProgressBarOptions): ProgressBar`
+
+Creates a progress bar according to the provided options. The only required option is `getProgress`, a function that will be invoked every time the progress bar is rendered, and should return a number between `0` and `1`.
+
+
+
+
 
 ## &nbsp;
 <p align="center">
