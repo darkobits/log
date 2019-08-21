@@ -85,7 +85,7 @@ describe('log', () => {
     });
 
     it('should only log its stack', () => {
-      const LogFactory = require('./log').default; // tslint:disable-line no-require-imports no-shadowed-variable
+      const LogFactory = require('./log'); // tslint:disable-line no-require-imports no-shadowed-variable
       const logger = LogFactory('');
       const err = new Error();
       logger[logLevel]('prefix', err);
