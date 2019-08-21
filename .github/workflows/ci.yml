@@ -17,6 +17,8 @@ jobs:
     - name: Build
       run: npx nps build
     - name: Test
+      env:
+        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
       run: |
         npx nps test.coverage
         npx codacy-coverage -v < ./coverage/lcov.info
