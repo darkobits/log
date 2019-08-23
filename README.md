@@ -3,7 +3,7 @@
 </a>
 <p align="center">
   <a href="https://www.npmjs.com/package/@darkobits/log"><img src="https://img.shields.io/npm/v/@darkobits/log.svg?style=flat-square"></a>
-  <a href="https://travis-ci.org/darkobits/log"><img src="https://img.shields.io/travis/darkobits/log.svg?style=flat-square"></a>
+  <a href="https://github.com/darkobits/log/actions"><img src="https://img.shields.io/endpoint?url=https://aws.frontlawn.net/ga-shields/darkobits/log&style=flat-square"></a>
   <a href="https://www.codacy.com/app/darkobits/log"><img src="https://img.shields.io/codacy/coverage/b64cfd79c4994acf8b31ff10b6d0ac87.svg?style=flat-square"></a>
   <a href="https://david-dm.org/darkobits/log"><img src="https://img.shields.io/david/darkobits/log.svg?style=flat-square"></a>
   <a href="https://github.com/conventional-changelog/standard-version"><img src="https://img.shields.io/badge/conventional%20commits-1.0.0-027dc6.svg?style=flat-square"></a>
@@ -141,7 +141,7 @@ log.info(log.prefix('someFunction'), 'Hello\nworld.');
 
 ### `addSecret(secret: string | RegExp, maskChar = '*'): void`
 
-This method may be used to ensure passwords and other sensitive information is not inadvertently written to the output stream. It accepts either a string literal or a regular expression. By default, secrets are masked using the `*` character.
+This method may be used to ensure passwords and other sensitive information are not inadvertently written to the output stream. It accepts either a string literal or a regular expression. By default, secrets are masked using the `*` character.
 
 **Example:**
 
