@@ -60,13 +60,11 @@ export const DEFAULT_CONFIG: Partial<LogOptions> = {
     },
     warn: {
       level: 2000,
-      label: 'WARN',
-      style: (token, chalk) => chalk.keyword('black').bgRgb(230, 230, 0)(token)
+      label: 'WARN'
     },
     notice: {
       level: 3000,
-      label: 'notice',
-      style: (token, chalk) => chalk.keyword('royalblue').bgKeyword('black')(token)
+      label: 'notice'
     },
     http: {
       level: 4000,
