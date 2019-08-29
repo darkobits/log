@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.10](https://github.com/darkobits/log/compare/v2.0.0-beta.9...v2.0.0-beta.10) (2019-08-29)
+
+
+### Features
+
+* Disable interactive sessions in CI environments. ([b1d1568](https://github.com/darkobits/log/commit/b1d1568))
+
 ## [2.0.0-beta.9](https://github.com/darkobits/log/compare/v2.0.0-beta.8...v2.0.0-beta.9) (2019-08-18)
 
 ## [2.0.0-beta.8](https://github.com/darkobits/log/compare/v2.0.0-beta.7...v2.0.0-beta.8) (2019-08-07)
