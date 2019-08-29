@@ -8,6 +8,7 @@ import stripIndent from '@darkobits/strip-indent';
 import chalk from 'chalk';
 import * as dateFns from 'date-fns';
 import merge from 'deepmerge';
+import IS_CI from 'is-ci';
 import isPlainObject from 'is-plain-object';
 import ow from 'ow';
 
@@ -336,6 +337,39 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
       }, userInteractiveOptions);
     }
 
+    const endInteractiveSession = (userStopOptions: BeginInteractiveOptions) => {
+      let stopOptions: BeginInteractiveOptions;
+
+      // Merge and validate options.
+      if (typeof userStopOptions === 'function') {
+        stopOptions = {
+          message: userStopOptions
+        };
+      } else {
+        stopOptions = userStopOptions;
+      }
+
+      // If we're in a CI environment, call the provided callback once and then
+      // bail.
+      if (IS_CI) {
+        stopOptions.message();
+        return;
+      }
+
+      if (stopOptions && typeof stopOptions.message === 'function') {
+        handleInteractiveWrite(sessionId, stopOptions.message);
+      }
+
+      history.endInteractiveSession(sessionId);
+    };
+
+    // If we're in a CI environment, call the provided callback once and then
+    // bail.
+    if (IS_CI) {
+      interactiveOptions.message();
+      return endInteractiveSession;
+    }
+
     const sessionId = history.beginInteractiveSession();
 
     ow(interactiveOptions.message, 'message', ow.function);
@@ -350,24 +384,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
     interactiveLoop(); // tslint:disable-line no-floating-promises
 
-    return (userStopOptions: BeginInteractiveOptions) => {
-      let stopOptions: BeginInteractiveOptions;
-
-      // Merge and validate options.
-      if (typeof userStopOptions === 'function') {
-        stopOptions = {
-          message: userStopOptions
-        };
-      } else {
-        stopOptions = userStopOptions;
-      }
-
-      if (stopOptions && typeof stopOptions.message === 'function') {
-        handleInteractiveWrite(sessionId, stopOptions.message);
-      }
-
-      history.endInteractiveSession(sessionId);
-    };
+    return endInteractiveSession;
   };
 
 

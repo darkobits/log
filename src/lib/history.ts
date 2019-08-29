@@ -13,6 +13,29 @@ import stripAnsi from 'strip-ansi';
 import {createOrphanedObject} from 'lib/utils';
 
 
+// ----- Private Globals -------------------------------------------------------
+
+/**
+ * @private
+ *
+ * Singleton map of streams to stream descriptors. This ensures that we do not
+ * decorate streams more than once, and that multiple LogHistory instances that
+ * are configured with the same output stream will use the same history.
+ */
+const streamHistories = new Map<NodeJS.WritableStream, StreamHandle>();
+
+
+/**
+ * @private
+ *
+ * Counter used when creating Symbols for interactive session IDs. Mostly useful
+ * for debugging purposes.
+ */
+let interactiveSessionIdCounter = 0;
+
+
+// ----- Types -----------------------------------------------------------------
+
 /**
  * Object containing a Symbol that correlates a log line to its interactive
  * session, or `false` if the line was not produced via an interactive session,
@@ -79,18 +102,7 @@ export interface LogHistory {
 }
 
 
-/**
- * @private
- *
- * Singleton map of streams to stream descriptors. This ensures that we do not
- * decorate streams more than once, and that multiple LogHistory instances that
- * are configured with the same output stream will use the same history.
- */
-const streamHistories = new Map<NodeJS.WritableStream, StreamHandle>();
-
-
-let interactiveSessionIdCounter = 0;
-
+// ----- Log History -----------------------------------------------------------
 
 export default function LogHistoryFactory(opts: LogHistoryOptions) {
   /**
