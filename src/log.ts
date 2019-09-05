@@ -12,10 +12,8 @@ import IS_CI from 'is-ci';
 import isPlainObject from 'is-plain-object';
 import ow from 'ow';
 
-import {
-  DEFAULT_CONFIG,
-  DEFAULT_THEME
-} from 'etc/config';
+import DEFAULT_CONFIG from 'etc/config';
+import DEFAULT_STYLE from 'etc/style';
 
 import {
   DEFAULT_FRAME_RATE,
@@ -57,9 +55,9 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
   /**
    * @private
    *
-   * Configuration for the logger.
+   * Base configuration for the logger.
    */
-  let options = merge(DEFAULT_CONFIG, DEFAULT_THEME);
+  let options = merge(DEFAULT_CONFIG, DEFAULT_STYLE);
 
 
   /**

@@ -2,7 +2,7 @@ import streams from 'stream';
 
 import uuid from 'uuid/v4';
 
-import {DEFAULT_CONFIG} from 'etc/config';
+import DEFAULT_CONFIG from 'etc/config';
 import {IS_PREFIX} from 'etc/constants';
 import {Logger} from 'etc/types';
 import LogPipe from 'lib/log-pipe';
