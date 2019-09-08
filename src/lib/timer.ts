@@ -4,11 +4,16 @@ import prettyMs from 'pretty-ms';
 import {createOrphanedObject} from 'lib/utils';
 
 
+/**
+ * Options object accepted by TimerFactory and #createTimer.
+ *
+ * See: https://github.com/sindresorhus/pretty-ms/blob/master/index.d.ts#L2-L64
+ */
 export type TimerOptions = prettyMs.Options;
 
 
 /**
- * Object returned by #.createTimer.
+ * Object returned by TimerFactory and #createTimer.
  */
 export interface Timer {
   /**

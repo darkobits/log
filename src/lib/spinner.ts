@@ -5,7 +5,7 @@ import {createOrphanedObject} from 'lib/utils';
 
 
 /**
- * Options object expected by SpinnerFactory and #.createSpinner.
+ * Options object expected by SpinnerFactory and #createSpinner.
  */
 export interface SpinnerOptions {
   /**
@@ -20,7 +20,7 @@ export interface SpinnerOptions {
 
 
 /**
- * Object returned by #.createTimer.
+ * Object returned by SpinnerFactory and #createSpinner.
  */
 export interface Spinner {
   toString(): string;

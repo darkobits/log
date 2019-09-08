@@ -26,6 +26,7 @@ import {
   LevelDescriptor,
   Logger,
   LogOptions,
+  Primitive,
   StyleFunction
 } from 'etc/types';
 
@@ -57,15 +58,15 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    *
    * Base configuration for the logger.
    */
-  let options = merge(DEFAULT_CONFIG, DEFAULT_STYLE);
+  let options = merge<Required<LogOptions>>(DEFAULT_CONFIG, DEFAULT_STYLE);
 
 
   /**
    * @private
    *
-   * Secrets added via `addSecret` that will be masked by the logger.
+   * Secrets added via `#addSecret` that will be masked by the logger.
    */
-  const secrets: Array<[string | RegExp, string]> = [];
+  const secrets: Array<[Primitive | RegExp, string]> = [];
 
 
   /**
@@ -86,7 +87,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    */
   function maskSecretsInLine(line: string) {
     return secrets.reduce<string>((messageAccumulator, [curSecret, curMaskChar]) => {
-      return mask(curSecret, messageAccumulator, curMaskChar);
+      return mask(String(curSecret), messageAccumulator, curMaskChar);
     }, line);
   }
 
@@ -108,7 +109,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Provided a token and a function, invokes the function with the token and
    * the logger's Chalk instance and returns the result.
    */
-  function styleToken(token: string | number | boolean | undefined, styleFn: StyleFunction | undefined) {
+  function styleToken(token: Primitive | undefined, styleFn: StyleFunction | undefined) {
     if (token === undefined) {
       return;
     }
@@ -402,7 +403,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
 
   log.addSecret = (secret, maskChar = '*') => {
-    ow(secret, 'secret', ow.any(ow.string, ow.regExp));
+    ow(secret, 'secret', ow.any(ow.string, ow.number, ow.boolean, ow.regExp));
     ow(maskChar, 'mask character', ow.string.minLength(1).maxLength(1));
     secrets.push([secret, maskChar]);
   };

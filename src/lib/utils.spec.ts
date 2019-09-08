@@ -11,10 +11,10 @@ import {
 describe('createOrphanedObject', () => {
   it('should create an object with no prototype', () => {
     const plainObject = {};
-    expect(typeof plainObject.hasOwnProperty).toBe('function');
+    expect(typeof plainObject.constructor).toBe('function');
 
     const orphanedObject = createOrphanedObject();
-    expect(typeof orphanedObject.hasOwnProperty).toBe('undefined');
+    expect(typeof orphanedObject.constructor).toBe('undefined');
   });
 });
 

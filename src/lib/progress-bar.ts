@@ -5,24 +5,91 @@ import {createOrphanedObject} from 'lib/utils';
 
 
 /**
- * Options object accepted by ProgressBarFactory.
+ * Options object accepted by ProgressBarFactory and #createProgressBar.
  */
 export interface ProgressBarOptions {
-  format?: string;
-  width?: number;
-  timeFormat?: prettyMs.Options;
-  symbols?: {
-    head?: string;
-    tail?: string;
-    incomplete?: string;
-    complete?: string;
-    completeHead?: string;
-  };
+  /**
+   * Function that will be invoked each time the progress bar renders. This
+   * function should return a number between 0 and 1 indicating how full the bar
+   * should be.
+   */
   getProgress(): number;
+
+  /**
+   * Optional tokenized string representing the desired format of the progress
+   * bar.
+   *
+   * Allowed tokens are:
+   * - :bar - The progress bar itself.
+   * - :percentage - The percentage of the bar that is complete (ex: 25%)
+   * - :elapsed - Time elapsed since the progress bar's creation.
+   * - :remaining - Estimated time remaining until the progress bar completes.
+   *
+   * Default: ':bar :percentage'
+   */
+  format?: string;
+
+  /**
+   * Optional width of the inner progress bar. That is, all characters between
+   * its head and its tail.
+   *
+   * Default: 12
+   */
+  width?: number;
+
+  /**
+   * Optional format to use when rendering the :elapsed and :remaining tokens.
+   *
+   * See: https://github.com/sindresorhus/pretty-ms/blob/master/index.d.ts#L2-L64
+   */
+  timeFormat?: prettyMs.Options;
+
+  /**
+   * Optional overrides for the characters used when rendering the progress bar.
+   * All symbols must be a single character.
+   */
+  symbols?: {
+    /**
+     * First/leftmost character.
+     *
+     * Default: '['
+     */
+    head?: string;
+
+    /**
+     * Last/rightmost character.
+     *
+     * Default: ']'
+     */
+    tail?: string;
+
+    /**
+     * Character used to represent the completed portion of the progress bar.
+     *
+     * Default: '='
+     */
+    complete?: string;
+
+    /**
+     * Character used to separate the complete and incomplete portions of the
+     * progress bar.
+     *
+     * Default: '>'
+     */
+    completeHead?: string;
+
+    /**
+     * Character used to represent the incomplete portion of the progress bar.
+     *
+     * Default: '-'
+     */
+    incomplete?: string;
+  };
 }
 
+
 /**
- * Object returned by ProgressBarFactory.
+ * Object returned by ProgressBarFactory and #createProgressBar.
  */
 export interface ProgressBar {
   toString(): string;
@@ -31,6 +98,10 @@ export interface ProgressBar {
 
 /**
  * Default progress bar options.
+ *
+ * These options will render a progress bar that looks like this:
+ *
+ * [==>---------] 25%
  */
 const DEFAULT_OPTIONS = {
   format: ':bar :percentage',

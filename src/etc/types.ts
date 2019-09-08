@@ -5,16 +5,12 @@ import {SpinnerOptions, Spinner} from 'lib/spinner';
 import {TimerOptions, Timer} from 'lib/timer';
 
 
-// ----- Styling ---------------------------------------------------------------
+// ----- Misc ------------------------------------------------------------------
 
 /**
- * Object representing an RGB color.
+ * Any JavaScript primitive type.
  */
-export interface ColorObject {
-  red: number;
-  green: number;
-  blue: number;
-}
+export type Primitive = string | number | boolean;
 
 
 /**
@@ -24,28 +20,30 @@ export type StyleFunction = (token: string, chalk: Chalk) => string;
 
 
 /**
- * Object representing the style to apply to a log message component.
- */
-export interface StyleObject {
-  fg?: string | ColorObject | StyleFunction;
-  bg?: string | ColorObject | StyleFunction;
-}
-
-
-// ----- Misc ------------------------------------------------------------------
-
-/**
  * Object representing the configuration for a single log level.
  */
 export interface LevelDescriptor {
+  /**
+   * Numerical value for the log level. This value situates the log level
+   * relative to other log levels and determines whether messages logged at this
+   * level will be printed or not.
+   */
   level: number;
+
+  /**
+   * Label that will be printed with each message logged at this level.
+   */
   label: string;
+
+  /**
+   * Formatter for the above label.
+   */
   style?: StyleFunction;
 }
 
 
 /**
- * Signature for log functions.
+ * Signature for all logger methods that produce output.
  */
 export type LogFunction<T = void> = (...args: Array<any>) => T;
 
@@ -64,13 +62,19 @@ export interface Prefix {
 
 // ----- Interactivity ---------------------------------------------------------
 
+/**
+ * Callback that will be invoked at each configured interval. This function
+ * should call one of the logger's log methods once and only once to produce
+ * a new output line that will overwrite the line from the previous interval.
+ */
+export type MessageFn = () => any;
+
+
+/**
+ * Options object accepted by #beginInteractiveSession
+ */
 export interface BeginInteractiveOptions {
-  /**
-   * Callback that will be invoked at each configured interval. This function
-   * should call one of the logger's log methods once and only once to produce
-   * a new output line that will overwrite the line from the previous interval.
-   */
-  message(): any;
+  message: MessageFn;
 
   /**
    * (Optional) Number of milliseconds between intervals.
@@ -80,26 +84,39 @@ export interface BeginInteractiveOptions {
   interval?: number;
 }
 
-export type EndInteractiveOptions = Omit<BeginInteractiveOptions, 'interval'>;
 
-export type EndInteractiveFn = (options?: (() => any) | EndInteractiveOptions) => void;
+/**
+ * Options object accepted by the function returned by #beginInteractiveSession.
+ */
+export interface EndInteractiveOptions {
+  message: MessageFn;
+}
+
+
+/**
+ * Function returned by #beginInteractiveSession.
+ */
+export type EndInteractiveFn = (options?: MessageFn | EndInteractiveOptions) => void;
 
 
 // ----- Logger ----------------------------------------------------------------
 
 /**
- * Options object accepted by LogFactory and #.configure.
+ * Options object accepted by LogFactory and #configure.
  */
 export interface LogOptions {
   /**
-   * Writable stream that the logger will use.
+   * Function that should return a writable stream that the logger will use.
    *
-   * Default: process.stderr
+   * Default: () => process.stderr
    */
-  stream: () => NodeJS.WritableStream;
+  stream?: () => NodeJS.WritableStream;
 
   /**
    * Optional timestamp format. If set to `false`, timestamps will be disabled.
+   * Formatting is done using date-fns#format.
+   *
+   * See: https://date-fns.org/v2.1.0/docs/format
    */
   timestamp?: string;
 
@@ -109,22 +126,23 @@ export interface LogOptions {
   heading?: string;
 
   /**
-   * Optional level to log at. If not set, falls back to the LOG_LEVEL
-   * environment variable or 'info'.
+   * Level to log at.
+   *
+   * Default: process.env.LOG_LEVEL || 'info'
    */
-  level: string;
+  level?: string;
 
   /**
    * Whether to normalize whitespace in multi-line strings.
    *
-   * Default: true
+   * Default: `true`
    */
-  stripIndent: boolean;
+  stripIndent?: boolean;
 
   /**
    * Optional style configuration for the logger.
    */
-  style: {
+  style?: {
     /**
      * Formatter for timestamps.
      */
@@ -150,7 +168,7 @@ export interface LogOptions {
    * Optional custom level definitions. These will be merged with the default
    * log levels.
    */
-  levels: {
+  levels?: {
     [key: string]: Partial<LevelDescriptor>;
   };
 }
@@ -164,6 +182,13 @@ export interface Logger {
    * Chalk instance for the logger.
    */
   chalk: Chalk;
+
+  /**
+   * Merges the provided configuration object with the logger's existing
+   * configuration. This method can be used to add levels, set the current
+   * level, set the current heading, update styles, etc.
+   */
+  configure(newConfig: Partial<LogOptions>): void;
 
   /**
    * Returns the LevelDescriptor for the current log level.
@@ -184,26 +209,19 @@ export interface Logger {
    */
   isLevelAtLeast(name: string): boolean;
 
-  /**
-   * Merges the provided configuration object with the logger's existing
-   * configuration. This method can be used to add levels, set the current
-   * level, set the current heading, update styles, etc.
-   */
-  configure(newConfig: Partial<LogOptions>): void;
-
 
   // ----- Utilities -----------------------------------------------------------
 
   /**
    * Style the provided string according to the logger's prefix style.
    */
-  prefix(prefix: string | number | boolean): Prefix;
+  prefix(prefix: Primitive): Prefix;
 
   /**
    * Adds a secret to the logger. Any occurrances of matched tokens in messages
    * will be masked.
    */
-  addSecret(secret: string | RegExp, maskChar?: string): void;
+  addSecret(secret: Primitive | RegExp, maskChar?: string): void;
 
   /**
    * Create a pipe that will log anything written to it at the provided log
@@ -217,7 +235,7 @@ export interface Logger {
   /**
    * Begins an interactive line session.
    */
-  beginInteractive(options: (() => any) | BeginInteractiveOptions): EndInteractiveFn;
+  beginInteractive(options: MessageFn | BeginInteractiveOptions): EndInteractiveFn;
 
   /**
    * Creates a timer.
