@@ -1,4 +1,4 @@
-import {Chalk, ChalkOptions} from 'chalk';
+import {Chalk, Options as ChalkOptions} from 'chalk';
 import {IS_PREFIX} from 'etc/constants';
 import {ProgressBarOptions, ProgressBar} from 'lib/progress-bar';
 import {SpinnerOptions, Spinner} from 'lib/spinner';

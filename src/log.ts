@@ -433,7 +433,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
   }
 
   // Create a custom Chalk instance for the logger using the provided options.
-  log.chalk = chalk.constructor(options.chalk);
+  log.chalk = new chalk.Instance(options.chalk);
 
   // Initialize a LogHistory.
   history = LogHistoryFactory({stream: options.stream()});
