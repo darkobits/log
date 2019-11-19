@@ -12,7 +12,7 @@ export default function NpmLogFactory(heading?: string, level?: string): Log {
   const log = importUnique('npmlog');
 
   // Attach a unique chalk instance to the logger.
-  log.chalk = new chalk.constructor();
+  log.chalk = new chalk.Instance();
 
   const LOG_LEVEL = env('LOG_LEVEL');
 
