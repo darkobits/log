@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.13](https://github.com/darkobits/log/compare/v2.0.0-beta.12...v2.0.0-beta.13) (2019-11-30)
+
+
+### Features
+
+* Allow stream to be set to `false`. ([b1122bf](https://github.com/darkobits/log/commit/b1122bf87354f8b034f26932fa724ecbd3be64d9))
+
 ## [2.0.0-beta.12](https://github.com/darkobits/log/compare/v2.0.0-beta.11...v2.0.0-beta.12) (2019-11-19)
 
 ## [2.0.0-beta.11](https://github.com/darkobits/log/compare/v2.0.0-beta.10...v2.0.0-beta.11) (2019-10-29)
