@@ -1,18 +1,21 @@
 import os from 'os';
 import util from 'util';
+import {Writable} from 'stream';
 
 import env from '@darkobits/env';
 import mask from '@darkobits/mask-string';
 import sleep from '@darkobits/sleep';
 import stripIndent from '@darkobits/strip-indent';
 import chalk from 'chalk';
+import createCallsiteRecord from 'callsite-record';
 import * as dateFns from 'date-fns';
 import merge from 'deepmerge';
 import IS_CI from 'is-ci';
 import isPlainObject from 'is-plain-object';
 import ow from 'ow';
+import sourceMapSupport from 'source-map-support';
 
-import DEFAULT_CONFIG from 'etc/config';
+import DEFAULT_CONFIG, {DEFAULT_STREAM} from 'etc/config';
 import DEFAULT_STYLE from 'etc/style';
 
 import {
@@ -58,7 +61,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    *
    * Base configuration for the logger.
    */
-  let options = merge<Required<LogOptions>>(DEFAULT_CONFIG, DEFAULT_STYLE);
+  let options = merge<Required<Omit<LogOptions, 'stream'>>>(DEFAULT_CONFIG, DEFAULT_STYLE);
 
 
   /**
@@ -67,6 +70,15 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Secrets added via `#addSecret` that will be masked by the logger.
    */
   const secrets: Array<[Primitive | RegExp, string]> = [];
+
+
+  /**
+   * @private
+   *
+   * The current stream we are writing to. This can be set to `false` to disable
+   * writing.
+   */
+  let stream: NodeJS.WritableStream | false;
 
 
   /**
@@ -95,8 +107,8 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
   /**
    * @private
    *
-   * Provided a log line tuple, writes the line's content to our output stream
-   * after masking any secrets contained therein.
+   * Provided a log line, writes the line's content to our output stream after
+   * masking any secrets contained therein.
    */
   function outputLogLine(logLine: string) {
     history.write(maskSecretsInLine(`${logLine}${os.EOL}`));
@@ -126,7 +138,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * @private
    *
    * Provided a single argument passed to a logging function, returns a
-   * serialzed and formatted string representation of the argument.
+   * serialized and formatted string representation of the argument.
    */
   function formatLogArgument(arg: any) {
     // For strings, return the argument as-is.
@@ -287,13 +299,47 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
   };
 
 
-  log.configure = newOptions => {
-    options = merge<Required<LogOptions>>(options, newOptions || {}, {
+  log.configure = (newOptions = {}) => {
+    // Pluck the 'stream' option from our options object, as it does not play
+    // nice with deepmerge.
+    const streamFromOptions: NodeJS.WritableStream | false | undefined = Reflect.get(newOptions, 'stream');
+    Reflect.deleteProperty(newOptions, 'stream');
+
+    if (streamFromOptions !== undefined) {
+      // If an explicit value was provided in our options, always use it.
+      stream = streamFromOptions;
+    } else if (stream === undefined) {
+      // Otherwise, if the stream has not been set yet, set it to the default
+      // stream.
+      stream = DEFAULT_STREAM;
+    }
+
+    options = merge<Required<Omit<LogOptions, 'stream'>>>(options, newOptions, {
       isMergeableObject: isPlainObject
     });
 
-    ow(options.stream, 'stream', ow.function);
+    ow(stream, 'stream', ow.any(ow.undefined, ow.object.instanceOf(Writable), ow.boolean.false));
     ow(options.levels, 'levels', ow.object.plain);
+
+    // Set the log level.
+    if (options.heading && isDebugNamespace(options.heading)) {
+      options.level = 'silly';
+    } else {
+      options.level = env('LOG_LEVEL') || options.level || 'info';
+    }
+
+    if (!log.chalk) {
+      // Create a custom Chalk instance for the logger using the provided options.
+      log.chalk = new chalk.Instance(options.chalk);
+    }
+
+    if (!history) {
+      // Initialize a LogHistory.
+      history = LogHistoryFactory({stream});
+    } else {
+      // Update stream.
+      history.setStream(stream);
+    }
 
     // Update log level methods.
     Object.entries(options.levels).forEach(([name, descriptor]) => {
@@ -387,21 +433,6 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
   };
 
 
-  log.createTimer = timerOptions => {
-    return TimerFactory(timerOptions);
-  };
-
-
-  log.createProgressBar = progressBarOptions => {
-    return ProgressBarFactory(progressBarOptions);
-  };
-
-
-  log.createSpinner = createSpinnerOptions => {
-    return SpinnerFactory(createSpinnerOptions);
-  };
-
-
   log.addSecret = (secret, maskChar = '*') => {
     ow(secret, 'secret', ow.any(ow.string, ow.number, ow.boolean, ow.regExp));
     ow(maskChar, 'mask character', ow.string.minLength(1).maxLength(1));
@@ -420,23 +451,40 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
   };
 
 
+  log.codeFrame = err => {
+    const callsiteRecord = createCallsiteRecord({
+      forError: err,
+      processFrameFn: frame => {
+        // Avoid `frame.isNative is not a function` errors. This also needs to
+        // return `false` to ensure frames are rendered using source maps.
+        Reflect.defineProperty(frame, 'isNative', {value: () => false});
+        return sourceMapSupport.wrapCallSite(frame);
+      }
+    });
+
+    if (!callsiteRecord) {
+      throw new Error(`Unable to produce a call site record for error: "${err.message}"`);
+    }
+
+    return callsiteRecord.renderSync({
+      stack: false
+    });
+  };
+
+
+  log.createTimer = TimerFactory;
+
+
+  log.createProgressBar = ProgressBarFactory;
+
+
+  log.createSpinner = SpinnerFactory;
+
+
   // ----- Init ----------------------------------------------------------------
 
   // Apply user-provided options.
   log.configure(userOptions);
-
-  // Set the log level.
-  if (options.heading && isDebugNamespace(options.heading)) {
-    log.configure({level: 'silly'});
-  } else {
-    log.configure({level: env('LOG_LEVEL') || userOptions.level || 'info'});
-  }
-
-  // Create a custom Chalk instance for the logger using the provided options.
-  log.chalk = new chalk.Instance(options.chalk);
-
-  // Initialize a LogHistory.
-  history = LogHistoryFactory({stream: options.stream()});
 
 
   return log;

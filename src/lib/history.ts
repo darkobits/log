@@ -22,7 +22,7 @@ import {createOrphanedObject} from 'lib/utils';
  * decorate streams more than once, and that multiple LogHistory instances that
  * are configured with the same output stream will use the same history.
  */
-const streamHistories = new Map<NodeJS.WritableStream, StreamHandle>();
+const streamHistories = new Map<NodeJS.WritableStream | false, StreamHandle>();
 
 
 /**
@@ -63,7 +63,7 @@ export interface StreamHandle {
  * Options object accepted by LogHistoryFactory.
  */
 export interface LogHistoryOptions {
-  stream: NodeJS.WritableStream;
+  stream: NodeJS.WritableStream | false;
 }
 
 
@@ -71,6 +71,11 @@ export interface LogHistoryOptions {
  * Object returned by LogHistoryFactory.
  */
 export interface LogHistory {
+  /**
+   * Update the stream that the ledger writes to.
+   */
+  setStream(newStream: NodeJS.WritableStream | false): void;
+
   /**
    * Begins a new interactive session and returns the Symbol representing the
    * session ID.
@@ -152,13 +157,21 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
    * Decorates the `write` method of the configured writable stream such that
    * any writes thereto will be captured in our history.
    */
-  function decorateOutputStream(stream: NodeJS.WritableStream) {
-    const originalWrite = opts.stream.write.bind(opts.stream);
+  function decorateOutputStream(stream: NodeJS.WritableStream | false) {
+    if (stream === false) {
+      return (...args: Array<any>) => {
+        const cb = args.pop();
+        cb();
+        return true;
+      };
+    }
+
+    const originalWrite = stream.write.bind(stream);
 
     // @ts-ignore
-    opts.stream.write = (chunk: any, cb?: ((err?: Error | null | undefined) => void)) => {
+    stream.write = (chunk: any, cb?: ((err?: Error | null | undefined) => void)) => {
       updateHistory(false, Buffer.from(chunk).toString('utf8'));
-      return Reflect.apply(originalWrite, opts.stream, [chunk, cb]);
+      return Reflect.apply(originalWrite, stream, [chunk, cb]);
     };
 
     return originalWrite;
@@ -221,6 +234,21 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
 
   // ----- Public Methods ------------------------------------------------------
+
+  logHistory.setStream = newStream => {
+    if (!streamHistories.has(newStream)) {
+      const originalWrite = decorateOutputStream(newStream);
+      streamHistories.set(newStream, {
+        originalWrite,
+        history: [],
+        interactiveSessionIds: []
+      });
+    }
+
+    // @ts-ignore
+    streamHandle = streamHistories.get(newStream);
+  };
+
 
   logHistory.beginInteractiveSession = () => {
     const interactiveSessionId = Symbol(`${++interactiveSessionIdCounter}`);
@@ -364,13 +392,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
 
   // ----- Init ----------------------------------------------------------------
 
-  if (!streamHistories.has(opts.stream)) {
-    const originalWrite = decorateOutputStream(opts.stream);
-    streamHistories.set(opts.stream, {originalWrite, history: [], interactiveSessionIds: []});
-  }
-
-  // @ts-ignore
-  streamHandle = streamHistories.get(opts.stream);
+  logHistory.setStream(opts.stream);
 
   return logHistory;
 }

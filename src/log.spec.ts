@@ -34,9 +34,9 @@ jest.mock('lib/spinner', () => {
 describe('Log', () => {
   let log: Logger;
 
-  const writeSpy = jest.fn((...args: Array<any>) => {
-    const cb = args.pop();
-    // console.warn('WRITE', args[0].toString());
+  const writeSpy = jest.fn((chunk, encoding, cb) => {
+    // const str = Buffer.from(chunk).toString('utf8');
+    // console.warn('SPY WRITE', str);
     cb();
   });
 
@@ -44,7 +44,7 @@ describe('Log', () => {
     jest.clearAllMocks();
 
     log = LogFactory({
-      stream: () => new streams.Writable({
+      stream: new streams.Writable({
         write: writeSpy
       })
     });
@@ -96,7 +96,7 @@ describe('Log', () => {
         log.configure({
           levels: {
             foo: {
-              label: 'foo',
+              label: 'FOO',
               level: 4000
             }
           }
@@ -236,12 +236,9 @@ describe('Log', () => {
 
       it(`should expose a "${level}" method`, () => {
         log.configure({level});
-
         const message = uuid();
-
         // @ts-ignore
         log[level](level === 'error' ? message : new Error(message));
-
         expect(writeSpy.mock.calls[0][0].toString()).toMatch(message);
       });
     });

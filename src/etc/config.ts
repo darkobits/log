@@ -4,11 +4,16 @@ import {LogOptions} from 'etc/types';
 
 
 /**
+ * Default stream we will write to.
+ */
+export const DEFAULT_STREAM = process.stderr;
+
+
+/**
  * Default options and levels for loggers. Default styles (see style.ts) and
  * user-provided options will be merged with these.
  */
 const DEFAULT_CONFIG: Partial<LogOptions> = {
-  stream: () => process.stderr,
   level: env('LOG_LEVEL') || 'info',
   stripIndent: true,
   levels: {

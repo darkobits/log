@@ -5,9 +5,9 @@ module.exports = require('@darkobits/ts-unified/dist/config/jest')({
   ],
   coverageThreshold: {
     global: {
-      statements: 90,
+      statements: 80,
       branches: 75,
-      functions: 85,
+      functions: 80,
       lines: 90
     }
   }

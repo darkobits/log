@@ -108,9 +108,9 @@ export interface LogOptions {
   /**
    * Function that should return a writable stream that the logger will use.
    *
-   * Default: () => process.stderr
+   * Default: process.stderr
    */
-  stream?: () => NodeJS.WritableStream;
+  stream?: NodeJS.WritableStream;
 
   /**
    * Optional timestamp format. If set to `false`, timestamps will be disabled.
@@ -228,6 +228,11 @@ export interface Logger {
    * level.
    */
   createPipe(level: string): NodeJS.WritableStream;
+
+  /**
+   * Render a code frame for an error.
+   */
+  codeFrame(err: Error): string;
 
 
   // ----- Interactivity -------------------------------------------------------
