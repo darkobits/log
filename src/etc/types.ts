@@ -110,7 +110,7 @@ export interface LogOptions {
    *
    * Default: process.stderr
    */
-  stream?: NodeJS.WritableStream;
+  stream?: NodeJS.WritableStream | false;
 
   /**
    * Optional timestamp format. If set to `false`, timestamps will be disabled.
