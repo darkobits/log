@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.14](https://github.com/darkobits/log/compare/v2.0.0-beta.13...v2.0.0-beta.14) (2019-11-30)
+
+
+### Bug Fixes
+
+* Fix typing for streams. ([8e21708](https://github.com/darkobits/log/commit/8e21708a087c4c6f5a5b680019847c088d2d5841))
+
 ## [2.0.0-beta.13](https://github.com/darkobits/log/compare/v2.0.0-beta.12...v2.0.0-beta.13) (2019-11-30)
 
 
