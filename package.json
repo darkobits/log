@@ -33,6 +33,6 @@
   "devDependencies": {
     "@darkobits/ts-unified": "^3.2.3",
     "@types/jest": "^24.0.23",
-    "@types/node": "^12.12.11"
+    "@types/node": "^13.9.2"
   }
 }
