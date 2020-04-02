@@ -27,7 +27,7 @@
     "@darkobits/env": "^1.2.1",
     "@darkobits/import-unique": "^1.0.5",
     "@types/npmlog": "^4.1.2",
-    "chalk": "^3.0.0",
+    "chalk": "^4.0.0",
     "npmlog": "^4.1.2"
   },
   "devDependencies": {
