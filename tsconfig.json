@@ -2,10 +2,9 @@
   "extends": "./node_modules/@darkobits/ts-unified/dist/config/tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
-    "outDir": "dist",
     "rootDir": "src",
+    "outDir": "dist",
     "paths": {"*": ["*", "src/*"]},
     "esModuleInterop": true
-  },
-  "exclude": ["src/testing2.ts", "dist", "node_modules"]
+  }
 }

@@ -51,16 +51,16 @@ describe('Timer', () => {
       expect(`${timer}`).toBe('0ms');
 
       NOW = dateFns.addSeconds(NOW, 2).valueOf();
-      expect(`${timer}`).toBe('~2s');
+      expect(`${timer}`).toBe('2s');
 
       NOW = dateFns.addMinutes(NOW, 2).valueOf();
-      expect(`${timer}`).toBe('~2m');
+      expect(`${timer}`).toBe('2m');
 
       NOW = dateFns.addHours(NOW, 5).valueOf();
-      expect(`${timer}`).toBe('~5h');
+      expect(`${timer}`).toBe('5h');
 
       NOW = dateFns.addDays(NOW, 1).valueOf();
-      expect(`${timer}`).toBe('~1d');
+      expect(`${timer}`).toBe('1d');
     });
   });
 

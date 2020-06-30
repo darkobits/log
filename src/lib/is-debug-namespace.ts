@@ -7,9 +7,9 @@ import env from '@darkobits/env';
  * Generates a pattern for testing candidate namespaces for debug-ability based
  * on the 'DEBUG` environment variable.
  */
-function generateDebugNamespaceRegex(debugEnvVar: string) {
+function generateDebugNamespaceRegex(debugEnvVar: any) {
   // Split on comma or space.
-  const splitNamespaces = debugEnvVar.split(/[ ,]/g);
+  const splitNamespaces = String(debugEnvVar).split(/[ ,]/g);
 
   // If the list of namespaces includes the global wildcard, return a regular
   // expression that always matches.
@@ -20,7 +20,7 @@ function generateDebugNamespaceRegex(debugEnvVar: string) {
   const isWildcardNamespace = (str: string) => /.*:\*/g.test(str);
 
   // Build up a string we will use to construct a regular expression instance.
-  const isDebugNamespacePattern = splitNamespaces.reduce((patterns, curNamespace) => {
+  const isDebugNamespacePattern = splitNamespaces.reduce<Array<string>>((patterns, curNamespace) => {
     // Ex: For namespace expressions like "foo:*", enable debugging on
     // namespaces that are "foo" plus any namespaces beginning with "foo:".
     if (isWildcardNamespace(curNamespace)) {

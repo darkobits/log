@@ -30,7 +30,9 @@ import {
   Logger,
   LogOptions,
   Primitive,
-  StyleFunction
+  StyleFunction,
+  EndInteractiveFn,
+  EndInteractiveOptions
 } from 'etc/types';
 
 import {
@@ -97,11 +99,11 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Provided a log line, returns a new log line with each secret known to
    * the logger masked.
    */
-  function maskSecretsInLine(line: string) {
+  const maskSecretsInLine = (line: string) => {
     return secrets.reduce<string>((messageAccumulator, [curSecret, curMaskChar]) => {
       return mask(String(curSecret), messageAccumulator, curMaskChar);
     }, line);
-  }
+  };
 
 
   /**
@@ -110,9 +112,9 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Provided a log line, writes the line's content to our output stream after
    * masking any secrets contained therein.
    */
-  function outputLogLine(logLine: string) {
+  const outputLogLine = (logLine: string) => {
     history.write(maskSecretsInLine(`${logLine}${os.EOL}`));
-  }
+  };
 
 
   /**
@@ -121,7 +123,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Provided a token and a function, invokes the function with the token and
    * the logger's Chalk instance and returns the result.
    */
-  function styleToken(token: Primitive | undefined, styleFn: StyleFunction | undefined) {
+  const styleToken = (token: Primitive | undefined, styleFn: StyleFunction | undefined) => {
     if (token === undefined) {
       return;
     }
@@ -131,7 +133,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
     }
 
     return styleFn(token as string, log.chalk);
-  }
+  };
 
 
   /**
@@ -140,7 +142,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Provided a single argument passed to a logging function, returns a
    * serialized and formatted string representation of the argument.
    */
-  function formatLogArgument(arg: any) {
+  const formatLogArgument = (arg: any) => {
     // For strings, return the argument as-is.
     if (typeof arg === 'string') {
       if (options.stripIndent) {
@@ -157,7 +159,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
     // For all other arguments, use `util.inspect`.
     return util.inspect(arg, {colors: true, depth: 20});
-  }
+  };
 
 
   /**
@@ -170,7 +172,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * This function is responsible for rendering any headings, prefixes, styles,
    * and applying serialization techniques to arguments.
    */
-  function convertArgumentsToLines(level: string, ...args: Array<any>) {
+  const convertArgumentsToLines = (level: string, ...args: Array<any>) => {
     const {heading, levels, style, timestamp} = options;
 
     ow(levels, 'levels', ow.object.plain);
@@ -181,7 +183,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
     const lines = args.map(arg => {
       // If the current argument was produced by invoking log.prefix(), assign
       // it to `prefix` and return `false`, which will be filtered-out below.
-      if (arg && arg[IS_PREFIX]) {
+      if (arg?.[IS_PREFIX]) {
         prefix = arg;
         return false;
       }
@@ -203,7 +205,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
     // Apply lead and prefix, then return an array of finalized lines.
     return lines.map(line => `${lead} ${line}`);
-  }
+  };
 
 
   /**
@@ -212,7 +214,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Common logic for each logging method created with `addLevel`, where the
    * only notable distinction is the level for the message.
    */
-  function handleLogArguments(level: string, ...args: Array<any>) {
+  const handleLogArguments = (level: string, ...args: Array<any>) => {
     // No-op if the current level is insufficient to allow the incoming message
     // to be logged.
     if (!log.isLevelAtLeast(level)) {
@@ -226,7 +228,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
       // stream.
       outputLogLine(logLine);
     });
-  }
+  };
 
 
   /**
@@ -234,7 +236,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    *
    * Adds a new level (and logging method) to the logger.
    */
-  function addLevel(name: string, levelOptions: LevelDescriptor) {
+  const addLevel = (name: string, levelOptions: LevelDescriptor) => {
     ow(levelOptions.label, 'label', ow.string);
     ow(levelOptions.level, 'level', ow.number);
 
@@ -248,7 +250,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
     Reflect.set(log, name, (...args: Array<any>) => {
       handleLogArguments(name, ...args);
     });
-  }
+  };
 
 
   /**
@@ -257,9 +259,9 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
    * Common logic used by `startInteractive` and `stopInteractive` to handle
    * producing one or more interactive log lines.
    */
-  function handleInteractiveWrite(sessionId: symbol, messageFn: any) {
+  const handleInteractiveWrite = (sessionId: symbol, messageFn: any) => {
     history.doInteractiveWrite(sessionId, messageFn);
-  }
+  };
 
 
   // ----- Public Methods ------------------------------------------------------
@@ -325,11 +327,12 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
     if (options.heading && isDebugNamespace(options.heading)) {
       options.level = 'silly';
     } else {
-      options.level = env('LOG_LEVEL') || options.level || 'info';
+      options.level = env('LOG_LEVEL') ?? options.level ?? 'info';
     }
 
     if (!log.chalk) {
-      // Create a custom Chalk instance for the logger using the provided options.
+      // Create a custom Chalk instance for the logger using the provided
+      // options.
       log.chalk = new chalk.Instance(options.chalk);
     }
 
@@ -355,14 +358,12 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
     const {style} = options;
 
     if (style.prefix) {
-      formattedPrefix = styleToken(prefix, style.prefix) || prefix;
+      formattedPrefix = styleToken(prefix, style.prefix) ?? prefix;
     }
 
     return {
       [IS_PREFIX]: true,
-      toString() {
-        return formattedPrefix.toString();
-      }
+      toString: () => formattedPrefix.toString()
     };
   };
 
@@ -382,21 +383,23 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
       }, userInteractiveOptions);
     }
 
-    const endInteractiveSession = (userStopOptions: BeginInteractiveOptions) => {
-      let stopOptions: BeginInteractiveOptions;
+    const sessionId = history.beginInteractiveSession();
+
+    const endInteractiveSession: EndInteractiveFn = userStopOptions => {
+      let stopOptions: Partial<EndInteractiveOptions> = {};
 
       // Merge and validate options.
       if (typeof userStopOptions === 'function') {
         stopOptions = {
           message: userStopOptions
         };
-      } else {
+      } else if (userStopOptions) {
         stopOptions = userStopOptions;
       }
 
       // If we're in a CI environment, call the provided callback once and then
       // bail.
-      if (IS_CI) {
+      if (IS_CI && typeof stopOptions.message === 'function') {
         stopOptions.message();
         return;
       }
@@ -415,8 +418,6 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
       return endInteractiveSession;
     }
 
-    const sessionId = history.beginInteractiveSession();
-
     ow(interactiveOptions.message, 'message', ow.function);
     ow(interactiveOptions.interval, 'interval', ow.number.positive);
 
@@ -427,7 +428,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
       }
     };
 
-    interactiveLoop(); // tslint:disable-line no-floating-promises
+    void interactiveLoop();
 
     return endInteractiveSession;
   };

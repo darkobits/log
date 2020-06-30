@@ -1,6 +1,6 @@
 import streams from 'stream';
 
-import uuid from 'uuid/v4';
+import {v4 as uuid} from 'uuid';
 
 import DEFAULT_CONFIG from 'etc/config';
 import {IS_PREFIX} from 'etc/constants';
@@ -122,6 +122,7 @@ describe('Log', () => {
             log.configure({levels: {
               newLevel: {
                 level: 100,
+                // @ts-expect-error
                 label: false
               }
             }});
@@ -131,6 +132,7 @@ describe('Log', () => {
             // @ts-ignore
             log.configure({levels: {
               newLevel: {
+                // @ts-expect-error
                 level: false,
                 label: 'newLevel'
               }
@@ -229,7 +231,7 @@ describe('Log', () => {
 
   describe('logging messages', () => {
     // @ts-ignore
-    Object.entries(DEFAULT_CONFIG.levels).forEach(([level, descriptor], index) => {
+    Object.entries(DEFAULT_CONFIG.levels).forEach(([level]) => {
       if (level === 'silent') {
         return;
       }

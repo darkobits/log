@@ -53,7 +53,7 @@ export interface LogLine {
  * written to it.
  */
 export interface StreamHandle {
-  originalWrite: Function;
+  originalWrite: (...args: Array<any>) => any;
   history: Array<LogLine>;
   interactiveSessionIds: Array<symbol>;
 }
@@ -141,58 +141,14 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
    * Returns `true` if the last entry in the history array ends with an EOL
    * character.
    */
-  function lastEntryIsCompleteLine() {
+  const lastEntryIsCompleteLine = () => {
     if (streamHandle.history.length === 0) {
       return true;
     }
 
     const lastItemContent = streamHandle.history[streamHandle.history.length - 1].content;
     return stripAnsi(lastItemContent).endsWith(os.EOL);
-  }
-
-
-  /**
-   * @private
-   *
-   * Decorates the `write` method of the configured writable stream such that
-   * any writes thereto will be captured in our history.
-   */
-  function decorateOutputStream(stream: NodeJS.WritableStream | false) {
-    if (stream === false) {
-      return (...args: Array<any>) => {
-        const cb = args.pop();
-        cb();
-        return true;
-      };
-    }
-
-    const originalWrite = stream.write.bind(stream);
-
-    // @ts-ignore
-    stream.write = (chunk: any, cb?: ((err?: Error | null | undefined) => void)) => {
-      updateHistory(false, Buffer.from(chunk).toString('utf8'));
-      return Reflect.apply(originalWrite, stream, [chunk, cb]);
-    };
-
-    return originalWrite;
-  }
-
-
-  /**
-   * @private
-   *
-   * Returns the index of the first interactive log line with an ID matching the
-   * provided ID. If no ID is provided, returns the first interactive log line.
-   */
-  function getFirstInteractiveIndex(id?: symbol) {
-    return streamHandle.history.findIndex(logLine => {
-      if (id === undefined) {
-        return logLine.interactiveSessionId !== false;
-      }
-
-      return logLine.interactiveSessionId === id;
-    });
-  }
+  };
 
 
   /**
@@ -202,7 +158,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
    * and writing each individual line to our history array as a LogLine tuple
    * with the correct interactive session ID.
    */
-  function updateHistory(interactiveSessionId: symbol | false, lineContent: string) {
+  const updateHistory = (interactiveSessionId: symbol | false, lineContent: string) => {
     // If there are no ongoing interactive sessions, we do not need to write
     // anything to our history.
     if (streamHandle.interactiveSessionIds.length === 0) {
@@ -210,7 +166,8 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
     }
 
     // Split the incoming string to separate lines.
-    const matches = lineContent.match(new RegExp(`.*(\\${os.EOL})?`, 'g'));
+    // const matches = lineContent.match();
+    const matches = new RegExp(`.*(\\${os.EOL})?`, 'g').exec(lineContent);
 
     if (!matches) {
       throw new Error('Unexpexted Error: Unable to split content into lines.');
@@ -230,7 +187,51 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
         lastEntry.content = `${lastEntry.content}${content}`;
       }
     });
-  }
+  };
+
+
+  /**
+   * @private
+   *
+   * Decorates the `write` method of the configured writable stream such that
+   * any writes thereto will be captured in our history.
+   */
+  const decorateOutputStream = (stream: NodeJS.WritableStream | false) => {
+    if (stream === false) {
+      return (...args: Array<any>) => {
+        const cb = args.pop();
+        cb();
+        return true;
+      };
+    }
+
+    const originalWrite = stream.write.bind(stream);
+
+    // @ts-ignore
+    stream.write = (chunk: any, cb?: ((err?: Error | null | undefined) => void)) => {
+      updateHistory(false, Buffer.from(chunk).toString('utf8'));
+      return Reflect.apply(originalWrite, stream, [chunk, cb]);
+    };
+
+    return originalWrite;
+  };
+
+
+  /**
+   * @private
+   *
+   * Returns the index of the first interactive log line with an ID matching the
+   * provided ID. If no ID is provided, returns the first interactive log line.
+   */
+  const getFirstInteractiveIndex = (id?: symbol) => {
+    return streamHandle.history.findIndex(logLine => {
+      if (id === undefined) {
+        return logLine.interactiveSessionId !== false;
+      }
+
+      return logLine.interactiveSessionId === id;
+    });
+  };
 
 
   // ----- Public Methods ------------------------------------------------------
@@ -357,9 +358,8 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
       // the canonical history and move on to the next line. If they do not
       // match, we need to erase the current line in the output stream and
       // replace it with the truncated line.
-      for (let i = 0; i < truncatedLines.length; i++) { // tslint:disable-line prefer-for-of
+      for (const truncatedLine of truncatedLines) { // tslint:disable-line prefer-for-of
         const oldLine = oldStreamHistory[historicalIndex];
-        const truncatedLine = truncatedLines[i];
 
         if (!oldLine || oldLine !== truncatedLine) {
           streamHandle.originalWrite(ansiEscapes.eraseLine);

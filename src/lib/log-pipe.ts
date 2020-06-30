@@ -24,13 +24,14 @@ export default class LogPipe extends Writable {
     this._logFn = logFn;
   }
 
-  _write(chunk: string, encoding: string, done: Function) {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
+  _write(chunk: string, encoding: string, callback: (error?: Error | null) => void) {
     let str = Buffer.from(chunk).toString('utf8');
 
     // Skip empty strings because they have no effect on output and wind up
     // confusing the rest of our logging logic.
     if (str === '') {
-      done();
+      callback();
       return;
     }
 
@@ -42,6 +43,6 @@ export default class LogPipe extends Writable {
     }
 
     this._logFn(str);
-    done();
+    callback();
   }
 }

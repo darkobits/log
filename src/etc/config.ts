@@ -14,7 +14,7 @@ export const DEFAULT_STREAM = process.stderr;
  * user-provided options will be merged with these.
  */
 const DEFAULT_CONFIG: Partial<LogOptions> = {
-  level: env('LOG_LEVEL') || 'info',
+  level: env('LOG_LEVEL') ?? 'info',
   stripIndent: true,
   levels: {
     silent: {

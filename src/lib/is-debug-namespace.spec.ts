@@ -1,5 +1,5 @@
 describe('isDebugNamespace', () => {
-  let isDebugNamespace: Function;
+  let isDebugNamespace: (envVar: string) => boolean;
   let DEBUG: any = '';
 
   beforeEach(() => {

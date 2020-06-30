@@ -148,7 +148,7 @@ export default function ProgressBarFactory(userOptions: ProgressBarOptions) {
    *
    * Renders the bar component of a progress bar.
    */
-  function renderBaseProgressBar(width: number, progress: number) {
+  const renderBaseProgressBar = (width: number, progress: number) => {
     const completeLen = Math.round(progress * width);
     const remainingLen = Math.round((1 - progress) * width);
 
@@ -169,7 +169,7 @@ export default function ProgressBarFactory(userOptions: ProgressBarOptions) {
     bar = `${bar}${options.symbols.tail}`;
 
     return bar;
-  }
+  };
 
 
   /**
@@ -177,10 +177,10 @@ export default function ProgressBarFactory(userOptions: ProgressBarOptions) {
    *
    * Renders elapsed time.
    */
-  function renderElapsedTime() {
+  const renderElapsedTime = () => {
     const elapsedTime = Date.now() - startTime;
     return prettyMs(elapsedTime, options.timeFormat);
-  }
+  };
 
 
   /**
@@ -188,17 +188,17 @@ export default function ProgressBarFactory(userOptions: ProgressBarOptions) {
    *
    * Renders remaining time.
    */
-  function renderRemainingTime(progress: number) {
+  const renderRemainingTime = (progress: number) => {
     const elapsedTime = Date.now() - startTime;
     const estimatedTotalTime = elapsedTime / progress;
     const remainingTime = estimatedTotalTime - elapsedTime;
 
-    if (remainingTime !== Infinity && remainingTime !== -Infinity && !isNaN(remainingTime)) {
+    if (remainingTime !== Infinity && remainingTime !== -Infinity && !Number.isNaN(remainingTime)) {
       return prettyMs(remainingTime, options.timeFormat);
     }
 
     return '';
-  }
+  };
 
 
   /**
@@ -206,10 +206,10 @@ export default function ProgressBarFactory(userOptions: ProgressBarOptions) {
    *
    * Renders percentage.
    */
-  function renderPercentage(progress: number) {
+  const renderPercentage = (progress: number) => {
     const percentComplete = Math.round(progress * 100);
     return `${percentComplete}%`;
-  }
+  };
 
 
   progressBar.toString = () => {

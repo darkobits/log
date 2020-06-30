@@ -24,32 +24,32 @@
     "prepare": "nps prepare"
   },
   "dependencies": {
-    "@darkobits/env": "^1.2.1",
+    "@darkobits/env": "^1.3.2",
     "@darkobits/mask-string": "^1.0.1",
     "@darkobits/sleep": "^1.0.2",
     "@darkobits/strip-indent": "^0.1.1",
-    "ansi-escapes": "^4.3.0",
+    "ansi-escapes": "^4.3.1",
     "callsite-record": "^4.1.3",
-    "chalk": "^3.0.0",
-    "clean-stack": "^2.2.0",
-    "cli-spinners": "^2.2.0",
-    "date-fns": "^2.8.0",
+    "chalk": "^4.1.0",
+    "clean-stack": "^3.0.0",
+    "cli-spinners": "^2.3.0",
+    "date-fns": "^2.14.0",
     "deepmerge": "^4.2.2",
     "is-ci": "^2.0.0",
-    "is-plain-object": "^3.0.0",
+    "is-plain-object": "^3.0.1",
     "over-9000": "^9000.1.0",
-    "ow": "^0.15.0",
-    "pretty-ms": "^5.1.0",
-    "source-map-support": "^0.5.16",
+    "ow": "^0.17.0",
+    "pretty-ms": "^7.0.0",
+    "source-map-support": "^0.5.19",
     "strip-ansi": "^6.0.0"
   },
   "devDependencies": {
-    "@darkobits/ts-unified": "^3.3.0-beta.0",
+    "@darkobits/ts-unified": "^5.1.0",
     "@types/is-ci": "^2.0.0",
-    "@types/jest": "^24.0.23",
-    "@types/node": "^12.12.14",
-    "@types/source-map-support": "^0.5.0",
-    "@types/uuid": "^3.4.6",
-    "uuid": "^3.3.3"
+    "@types/jest": "^26.0.3",
+    "@types/node": "^14.0.14",
+    "@types/source-map-support": "^0.5.1",
+    "@types/uuid": "^8.0.0",
+    "uuid": "^8.2.0"
   }
 }
