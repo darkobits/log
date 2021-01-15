@@ -170,7 +170,7 @@ export default function LogHistoryFactory(opts: LogHistoryOptions) {
     const matches = new RegExp(`.*(\\${os.EOL})?`, 'g').exec(lineContent);
 
     if (!matches) {
-      throw new Error('Unexpexted Error: Unable to split content into lines.');
+      throw new Error('Unexpected Error: Unable to split content into lines.');
     }
 
     // If the last character in `content` is not an EOL, we can get a stray ''.

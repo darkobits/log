@@ -1,8 +1,9 @@
-import {Chalk, Options as ChalkOptions} from 'chalk';
-import {IS_PREFIX} from 'etc/constants';
-import {ProgressBarOptions, ProgressBar} from 'lib/progress-bar';
-import {SpinnerOptions, Spinner} from 'lib/spinner';
-import {TimerOptions, Timer} from 'lib/timer';
+import { IS_PREFIX } from 'etc/constants';
+
+import type { Chalk, Options as ChalkOptions } from 'chalk';
+import type { ProgressBarOptions, ProgressBar } from 'lib/progress-bar';
+import type { SpinnerOptions, Spinner } from 'lib/spinner';
+import type { TimerOptions, Timer } from 'lib/timer';
 
 
 // ----- Misc ------------------------------------------------------------------

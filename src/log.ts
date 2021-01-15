@@ -11,19 +11,17 @@ import createCallsiteRecord from 'callsite-record';
 import * as dateFns from 'date-fns';
 import merge from 'deepmerge';
 import IS_CI from 'is-ci';
-import isPlainObject from 'is-plain-object';
+import { isPlainObject } from 'is-plain-object';
 import ow from 'ow';
 import sourceMapSupport from 'source-map-support';
 
-import DEFAULT_CONFIG, {DEFAULT_STREAM} from 'etc/config';
+import DEFAULT_CONFIG, { DEFAULT_STREAM } from 'etc/config';
 import DEFAULT_STYLE from 'etc/style';
-
 import {
   DEFAULT_FRAME_RATE,
   DEFAULT_LEVEL_OPTIONS,
   IS_PREFIX
 } from 'etc/constants';
-
 import {
   BeginInteractiveOptions,
   LevelDescriptor,
@@ -34,12 +32,10 @@ import {
   EndInteractiveFn,
   EndInteractiveOptions
 } from 'etc/types';
-
 import {
   createOrphanedObject,
   formatError
 } from 'lib/utils';
-
 import LogHistoryFactory, {LogHistory} from 'lib/history';
 import isDebugNamespace from 'lib/is-debug-namespace';
 import LogPipe from 'lib/log-pipe';
@@ -146,7 +142,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
     // For strings, return the argument as-is.
     if (typeof arg === 'string') {
       if (options.stripIndent) {
-        return stripIndent(arg, {stripEmptyLeading: true, stripEmptyTrailing: true});
+        return stripIndent(arg).trim();
       }
 
       return arg;
@@ -369,19 +365,12 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
 
 
   log.beginInteractive = userInteractiveOptions => {
-    let interactiveOptions: Required<BeginInteractiveOptions>;
-
-    // Merge and validate options.
-    if (typeof userInteractiveOptions === 'function') {
-      interactiveOptions = {
-        message: userInteractiveOptions,
-        interval: DEFAULT_FRAME_RATE
-      };
-    } else {
-      interactiveOptions = merge<Required<BeginInteractiveOptions>>({
-        interval: DEFAULT_FRAME_RATE
-      }, userInteractiveOptions);
-    }
+    const interactiveOptions: Required<BeginInteractiveOptions> = typeof userInteractiveOptions === 'function'
+      ? { message: userInteractiveOptions, interval: DEFAULT_FRAME_RATE }
+      : merge<Required<BeginInteractiveOptions>>(
+        { interval: DEFAULT_FRAME_RATE },
+        userInteractiveOptions
+      );
 
     const sessionId = history.beginInteractiveSession();
 

@@ -1,8 +1,8 @@
 module.exports = {
-  extends: [
-    require.resolve('@darkobits/ts-unified/dist/config/eslint')
-  ],
+  extends: require('@darkobits/ts').eslint,
   rules: {
-    'unicorn/no-reduce': 'off'
+    'unicorn/no-reduce': 'off',
+    // This rule does not seem to understand what a type import is.
+    'unicorn/import-style': 'off'
   }
 };

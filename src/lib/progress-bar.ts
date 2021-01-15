@@ -155,11 +155,7 @@ export default function ProgressBarFactory(userOptions: ProgressBarOptions) {
     let bar = options.symbols.head;
 
     for (let i = 0; i < completeLen; i++) {
-      if (i === completeLen - 1 && progress !== 1) {
-        bar = `${bar}${options.symbols.completeHead}`;
-      } else {
-        bar = `${bar}${options.symbols.complete}`;
-      }
+      bar = i === completeLen - 1 && progress !== 1 ? `${bar}${options.symbols.completeHead}` : `${bar}${options.symbols.complete}`;
     }
 
     for (let i = 0; i < remainingLen; i++) {
