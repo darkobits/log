@@ -1,12 +1,12 @@
 <a href="#top" id="top">
-  <img src="https://user-images.githubusercontent.com/441546/41699021-76157614-74d6-11e8-9ad0-13708b41176e.png" style="max-width: 100%">
+  <img src="https://user-images.githubusercontent.com/441546/104720607-e97f5a80-56e1-11eb-89e5-5eee4dc9b17e.png" style="max-width: 100%">
 </a>
 <p align="center">
   <a href="https://www.npmjs.com/package/@darkobits/log"><img src="https://img.shields.io/npm/v/@darkobits/log.svg?style=flat-square"></a>
-  <a href="https://github.com/darkobits/log/actions"><img src="https://img.shields.io/endpoint?url=https://aws.frontlawn.net/ga-shields/darkobits/log&style=flat-square"></a>
-  <a href="https://www.codacy.com/app/darkobits/log"><img src="https://img.shields.io/codacy/coverage/b64cfd79c4994acf8b31ff10b6d0ac87.svg?style=flat-square"></a>
+  <a href="https://github.com/darkobits/log/actions"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Factions-badge.atrox.dev%2Fdarkobits%2Flog%2Fbadge%3Fref%3Dmaster&style=flat-square&label=build&logo=none"></a>
+  <a href="https://app.codecov.io/gh/darkobits/log/branch/master"><img src="https://img.shields.io/codecov/c/github/darkobits/log/master?style=flat-square"></a>
   <a href="https://david-dm.org/darkobits/log"><img src="https://img.shields.io/david/darkobits/log.svg?style=flat-square"></a>
-  <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/conventional%20commits-1.0.0-FB5E85.svg?style=flat-square"></a>
+  <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/conventional%20commits-1.0.0-027dc6.svg?style=flat-square"></a>
 </p>
 
 A logger for CLIs.
