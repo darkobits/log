@@ -9,7 +9,7 @@
   <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/conventional%20commits-1.0.0-027dc6.svg?style=flat-square"></a>
 </p>
 
-A logger for CLIs.
+A logger for CLIs. Noop.
 
 ## Contents
 
