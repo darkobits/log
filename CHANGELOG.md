@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.16](https://github.com/darkobits/log/compare/v2.0.0-beta.15...v2.0.0-beta.16) (2021-05-11)
+
+
+### 📖 Documentation
+
+* Update README.md. ([6d6df93](https://github.com/darkobits/log/commit/6d6df93843eb253f3c249116f7dd25bec6442634))
+
+
+### 🏗 Chores
+
+* **deps:** Update dependencies. ([7e106e9](https://github.com/darkobits/log/commit/7e106e9bbbb1197b34f4beaa14a44533b3489e27))
+* Update .gitignore. ([dcaafa5](https://github.com/darkobits/log/commit/dcaafa516fe863f7956555b60299c25b5209e100))
+* Update dependencies. ([28cc2f2](https://github.com/darkobits/log/commit/28cc2f21b2d77193e7a0393b2fb5bb1bdbec59f8))
+
 ## [2.0.0-beta.15](https://github.com/darkobits/log/compare/v2.0.0-beta.14...v2.0.0-beta.15) (2020-06-30)
 
 ## [2.0.0-beta.14](https://github.com/darkobits/log/compare/v2.0.0-beta.13...v2.0.0-beta.14) (2019-11-30)
