@@ -5,7 +5,7 @@ import {Writable} from 'stream';
 import env from '@darkobits/env';
 import mask from '@darkobits/mask-string';
 import sleep from '@darkobits/sleep';
-import stripIndent from '@darkobits/strip-indent';
+import stripIndent from 'strip-indent';
 import chalk from 'chalk';
 import createCallsiteRecord from 'callsite-record';
 import * as dateFns from 'date-fns';
