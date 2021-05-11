@@ -60,4 +60,5 @@ typings/
 dist
 
 /NOTES.md
+/fixtures
 src/testing.ts
