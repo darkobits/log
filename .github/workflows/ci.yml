@@ -1,43 +1,43 @@
-name: CI/CD
+name: ci
 on:
   - push
   - pull_request
+env:
+  FORCE_COLOR: 3
 jobs:
-  build-test:
-    name: Build & Test
+  ci-cd:
+    name: CI/CD
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
+      cancel-in-progress: true
     steps:
-      - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.6.0
-        with:
-          access_token: ${{ github.token }}
-
-      - name: Clone Repository
+      - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
 
-      - name: Set Up Node
-        uses: actions/setup-node@v1
+      - name: Node
+        uses: actions/setup-node@v2
         with:
-          node-version: 14
+          node-version: 16
+          cache: npm
 
-      - name: Use Dependencies Cache
-        id: dependencies-cache
-        uses: actions/cache@v1
-        with:
-          key: dependencies-${{ hashFiles('package-lock.json') }}
-          path: node_modules
+      - name: Install
+        run: npm ci
 
-      - name: Install Dependencies
-        if: steps.dependencies-cache.outputs.cache-hit != 'true'
-        run: npm ci --ignore-scripts
+      - name: Build
+        run: npx nr build
 
-      - name: Build Project
-        run: npx nps build
+      - name: Test
+        run: |
+          npx nr test.coverage
+          bash <(curl -s https://codecov.io/bash)
 
-      - name: Run Unit Tests
-        run: npx nps test.coverage
-
-      - name: Upload Coverage Report
-        run: bash <(curl -s https://codecov.io/bash)
+      # - name: Release
+      #   env:
+      #     GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      #   run: |
+      #     npx semantic-release
+      #     npx nr publish
