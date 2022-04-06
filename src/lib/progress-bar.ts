@@ -1,6 +1,7 @@
 import merge from 'deepmerge';
 import ow from 'ow';
 import prettyMs from 'pretty-ms';
+
 import {createOrphanedObject} from 'lib/utils';
 
 
@@ -189,7 +190,7 @@ export default function ProgressBarFactory(userOptions: ProgressBarOptions) {
     const estimatedTotalTime = elapsedTime / progress;
     const remainingTime = estimatedTotalTime - elapsedTime;
 
-    if (remainingTime !== Infinity && remainingTime !== -Infinity && !Number.isNaN(remainingTime)) {
+    if (remainingTime !== Number.POSITIVE_INFINITY && remainingTime !== Number.NEGATIVE_INFINITY && !Number.isNaN(remainingTime)) {
       return prettyMs(remainingTime, options.timeFormat);
     }
 

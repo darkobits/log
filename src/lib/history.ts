@@ -7,9 +7,11 @@
  * sessions in progress at the same time.
  */
 import os from 'os';
+
 import ansiEscapes from 'ansi-escapes';
 import ow from 'ow';
 import stripAnsi from 'strip-ansi';
+
 import {createOrphanedObject} from 'lib/utils';
 
 

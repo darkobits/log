@@ -1,27 +1,27 @@
 import os from 'os';
-import util from 'util';
 import {Writable} from 'stream';
+import util from 'util';
 
 import env from '@darkobits/env';
 import mask from '@darkobits/mask-string';
 import sleep from '@darkobits/sleep';
-import stripIndent from 'strip-indent';
-import chalk from 'chalk';
 import createCallsiteRecord from 'callsite-record';
+import chalk from 'chalk';
 import * as dateFns from 'date-fns';
 import merge from 'deepmerge';
 import IS_CI from 'is-ci';
 import { isPlainObject } from 'is-plain-object';
 import ow from 'ow';
 import sourceMapSupport from 'source-map-support';
+import stripIndent from 'strip-indent';
 
 import DEFAULT_CONFIG, { DEFAULT_STREAM } from 'etc/config';
-import DEFAULT_STYLE from 'etc/style';
 import {
   DEFAULT_FRAME_RATE,
   DEFAULT_LEVEL_OPTIONS,
   IS_PREFIX
 } from 'etc/constants';
+import DEFAULT_STYLE from 'etc/style';
 import {
   BeginInteractiveOptions,
   LevelDescriptor,
@@ -32,16 +32,16 @@ import {
   EndInteractiveFn,
   EndInteractiveOptions
 } from 'etc/types';
-import {
-  createOrphanedObject,
-  formatError
-} from 'lib/utils';
 import LogHistoryFactory, {LogHistory} from 'lib/history';
 import isDebugNamespace from 'lib/is-debug-namespace';
 import LogPipe from 'lib/log-pipe';
 import ProgressBarFactory from 'lib/progress-bar';
 import SpinnerFactory from 'lib/spinner';
 import TimerFactory from 'lib/timer';
+import {
+  createOrphanedObject,
+  formatError
+} from 'lib/utils';
 
 
 /**
@@ -320,11 +320,7 @@ export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
     ow(options.levels, 'levels', ow.object.plain);
 
     // Set the log level.
-    if (options.heading && isDebugNamespace(options.heading)) {
-      options.level = 'silly';
-    } else {
-      options.level = env('LOG_LEVEL') ?? options.level ?? 'info';
-    }
+    options.level = options.heading && isDebugNamespace(options.heading) ? 'silly' : env('LOG_LEVEL') ?? options.level ?? 'info';
 
     if (!log.chalk) {
       // Create a custom Chalk instance for the logger using the provided

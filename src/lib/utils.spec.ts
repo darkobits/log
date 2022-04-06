@@ -1,4 +1,5 @@
 import os from 'os';
+
 import chalk from 'chalk';
 import stripAnsi from 'strip-ansi';
 

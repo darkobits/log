@@ -19,7 +19,7 @@ describe('isDebugNamespace', () => {
   describe('when the global wildcard was not used', () => {
     beforeEach(() => {
       DEBUG = 'one,two,three:a,three:b, four:*';
-      jest.resetModuleRegistry();
+      jest.resetModules();
       isDebugNamespace = require('./is-debug-namespace'); // tslint:disable-line no-require-imports
     });
 
@@ -40,7 +40,7 @@ describe('isDebugNamespace', () => {
   describe('when the global wildcard was used', () => {
     beforeEach(() => {
       DEBUG = '*';
-      jest.resetModuleRegistry();
+      jest.resetModules();
       isDebugNamespace = require('./is-debug-namespace'); // tslint:disable-line no-require-imports
     });
 
@@ -52,7 +52,7 @@ describe('isDebugNamespace', () => {
   describe('when no DEBUG variable was set', () => {
     beforeEach(() => {
       DEBUG = undefined;
-      jest.resetModuleRegistry();
+      jest.resetModules();
       isDebugNamespace = require('./is-debug-namespace'); // tslint:disable-line no-require-imports
     });
 

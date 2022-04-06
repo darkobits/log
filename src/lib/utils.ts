@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 import os from 'os';
+
 import {Chalk} from 'chalk';
 import cleanStack from 'clean-stack';
 

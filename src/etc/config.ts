@@ -1,5 +1,6 @@
 import env from '@darkobits/env';
 import OVER_9000 from 'over-9000';
+
 import {LogOptions} from 'etc/types';
 
 
@@ -18,7 +19,7 @@ const DEFAULT_CONFIG: Partial<LogOptions> = {
   stripIndent: true,
   levels: {
     silent: {
-      level: -Infinity,
+      level: Number.NEGATIVE_INFINITY,
       label: ''
     },
     error: {

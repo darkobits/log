@@ -147,6 +147,7 @@ describe('Log', () => {
     describe('when there is no configured prefix style', () => {
       it('should return an unstyled prefix object', () => {
         log.configure({
+          // @ts-expect-error
           style: {prefix: undefined}
         });
 
