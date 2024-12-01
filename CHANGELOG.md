@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.17](https://github.com/darkobits/log/compare/v2.0.0-beta.16...v2.0.0-beta.17) (2024-12-01)
+
+
+### Features
+
+* Add new logger. ([5080695](https://github.com/darkobits/log/commit/50806954f42325b0cf86cbf71638ab92fee361f2))
+
 ## [2.0.0-beta.16](https://github.com/darkobits/log/compare/v2.0.0-beta.15...v2.0.0-beta.16) (2021-05-11)
 
 
