@@ -1,56 +1,88 @@
-/* eslint-disable @typescript-eslint/unbound-method */
-import os from 'os';
-import {Chalk} from 'chalk';
-import cleanStack from 'clean-stack';
-
-const create = Object.create;
-const hasOwnProperty = Object.prototype.hasOwnProperty;
-const isPrototypeOf = Object.prototype.isPrototypeOf;
-const propertyIsEnumerable = Object.prototype.propertyIsEnumerable;
-const toString = Object.prototype.toString;
-const valueOf = Object.prototype.valueOf;
-const toLocaleString = Object.prototype.toLocaleString;
-
-
-interface OrphanedObject {
-  [key: string]: any;
-  hasOwnProperty: typeof Object['prototype']['hasOwnProperty'];
-  isPrototypeOf: typeof Object['prototype']['isPrototypeOf'];
-  propertyIsEnumerable: typeof Object['prototype']['propertyIsEnumerable'];
-  toLocaleString: typeof Object['prototype']['toLocaleString'];
-  toString: typeof Object['prototype']['toString'];
-  valueOf: typeof Object['prototype']['valueOf'];
-}
-
+import ms from 'ms'
 
 /**
- * Creates a new object of type T with no prototype.
- *
- * Designed to partially mitigate attacks like these:
- *
- * https://snyk.io/vuln/npm:lodash:20180130
+ * Predicate that always returns true.
  */
-export function createOrphanedObject<T = any>() {
-  // eslint-disable-next-line unicorn/no-null
-  const obj = create(null) as T & OrphanedObject; // tslint:disable-line no-null-keyword
+export const noOpPredicate = (testScope: string) => true
 
-  obj.hasOwnProperty = v => Reflect.apply(hasOwnProperty, obj, [v]);
-  obj.isPrototypeOf = v => Reflect.apply(isPrototypeOf, obj, [v]);
-  obj.propertyIsEnumerable = v => Reflect.apply(propertyIsEnumerable, obj, [v]);
-  obj.toLocaleString = () => Reflect.apply(toLocaleString, obj, []);
-  obj.toString = () => Reflect.apply(toString, obj, []);
-  obj.valueOf = () => Reflect.apply(valueOf, obj, []);
+/**
+ * Provided a valid DEBUG environment variable, returns a predicate that accepts
+ * a debug scope and returns `true` if that scope's log messages should be
+ * allowed according to the expression.
+ *
+ * If an empty string or any non-string value is provided as an expression, the
+ * resulting predicate will always return `true`.
+ *
+ * See: https://www.npmjs.com/package/debug
+ */
+export function createScopeMatcher(debugExpression?: any) {
+  if (typeof debugExpression !== 'string' || debugExpression === '') return noOpPredicate
 
-  return obj as T;
+  const rawStatements = debugExpression.split(/,\s*/g)
+  const rawSegments = rawStatements.flatMap(s => s.split(':'))
+  if (rawSegments.includes('')) return noOpPredicate
+
+  const statements = rawStatements.map(s => s.replace('*', String.raw`[^\s]+`))
+  const allowPatterns = statements.filter(s => !s.startsWith('-')).map(s => new RegExp(`^${s}$`))
+  const denyPatterns = statements.filter(s => s.startsWith('-')).map(s => new RegExp(`^${s.replaceAll(/^-/g, '')}$`))
+
+  const isAllowed = (input: string) => allowPatterns.some(p => input.match(p))
+  const isDenied = (input: string) => denyPatterns.some(p => input.match(p))
+
+  return (testScope: string) => isAllowed(testScope) && !isDenied(testScope)
 }
 
+/**
+ * Creates an object that can be used as a chronograph. After being started, it
+ * can be placed directly into interpolated strings to print its current value.
+ */
+export function createChronograph() {
+  const createdAt = Date.now()
 
-export function formatError(chalk: Chalk, err: Error) {
-  const message = (err.stack ?? '').split(os.EOL)[0];
-  const stack = cleanStack(err.stack ?? '', {pretty: true}).split(os.EOL).slice(1).join(os.EOL);
+  let state: 'running' | 'paused' = 'running'
+  let segmentStartTime = createdAt
+  let msAccumulated = 0
 
-  return [
-    chalk.red.bold(message),
-    chalk.rgb(85, 85, 85)(stack)
-  ].join(os.EOL);
+  return {
+    /** When the chronograph was created as a UNIX timestamp. */
+    get createdAt() {
+      return createdAt
+    },
+    /** Whether the chronograph is currently paused or running. */
+    get state() {
+      return state
+    },
+    /** Number of milliseconds accumulated by the chronograph. */
+    get value() {
+      return state === 'paused' ? msAccumulated : Date.now() - segmentStartTime + msAccumulated
+    },
+    /** Number of milliseconds accumulated by the chronograph. */
+    toNumber: () => {
+      return state === 'paused' ? msAccumulated : Date.now() - segmentStartTime + msAccumulated
+    },
+    /** String representation of the chronograph's value. @example '20s' */
+    toString: () => {
+      return ms(state === 'paused' ? msAccumulated : Date.now() - segmentStartTime + msAccumulated)
+    },
+    /** String representation of the chronograph's value. @example '20s' */
+    toJSON: () => {
+      return ms(state === 'paused' ? msAccumulated : Date.now() - segmentStartTime + msAccumulated)
+    },
+    /** Pauses the chronograph. */
+    pause: () => {
+      if (state === 'paused') return
+      msAccumulated += Date.now() - segmentStartTime
+      state = 'paused'
+    },
+    /** Resumes the chronograph. */
+    resume: () => {
+      if (state === 'running') return
+      segmentStartTime = Date.now()
+      state = 'running'
+    },
+    /** Resets the chronograph's accumulated time to 0. */
+    reset: () => {
+      msAccumulated = 0
+    }
+  }
 }

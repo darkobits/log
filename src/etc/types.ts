@@ -1,303 +1,85 @@
-import { IS_PREFIX } from 'etc/constants';
+import chalk from 'chalk'
+import {
+  type ConsolaInstance,
+  type ConsolaOptions,
+  type LogType
+} from 'consola'
 
-import type { Chalk, Options as ChalkOptions } from 'chalk';
-import type { ProgressBarOptions, ProgressBar } from 'lib/progress-bar';
-import type { SpinnerOptions, Spinner } from 'lib/spinner';
-import type { TimerOptions, Timer } from 'lib/timer';
+import { createChronograph } from 'lib/utils'
 
-
-// ----- Misc ------------------------------------------------------------------
-
-/**
- * Any JavaScript primitive type.
- */
-export type Primitive = string | number | boolean;
-
+import type { Options as OraOptions, Ora } from 'ora'
 
 /**
- * Signature for custom styling functions.
+ * Options accepted by `createLogger`. Accepts all valid Consola options.
  */
-export type StyleFunction = (token: string, chalk: Chalk) => string;
-
-
-/**
- * Object representing the configuration for a single log level.
- */
-export interface LevelDescriptor {
+export interface EnhancedConsolaOptions extends Omit<ConsolaOptions, 'level'> {
   /**
-   * Numerical value for the log level. This value situates the log level
-   * relative to other log levels and determines whether messages logged at this
-   * level will be printed or not.
+   * Optional prefix that will appear before log messages.
    */
-  level: number;
-
+  heading?: string | undefined | ((chalk: chalk.Chalk) => string | undefined)
   /**
-   * Label that will be printed with each message logged at this level.
+   * Log level. If this value is a Promise, log messages will be paused
+   * until it is resolved.
+   *
+   * In Node, defaults to the LOG_LEVEL environment variable.
    */
-  label: string;
-
+  level: LogType | null | undefined | Promise<LogType | null | undefined>
   /**
-   * Formatter for the above label.
+   * Value to use for determining what debug scopes should be allowed or denied.
+   *
+   * In Node, defaults to the DEBUG environment variable.
+   *
+   * @example 'http:server:connect,-http:server:disconnect,http:logger:*'
+   * @see https://github.com/debug-js/debug
    */
-  style?: StyleFunction;
+  debugExpression?: string | undefined | Promise<string | undefined>
+  /**
+   * Optional debug scope for this logger. If set, any messages issued at the
+   * debug level will only be logged if this scope is allowed according to the
+   * value of `debugExpression`.
+   *
+   * @example 'http:server'
+   * @see https://github.com/debug-js/debug
+   */
+  debugScope?: string | undefined
+  /**
+   * Options to provide to Chalk.
+   */
+  chalkOptions?: chalk.Options
 }
 
-
 /**
- * Signature for all logger methods that produce output.
+ * Value returned from `createLogger`.
  */
-export type LogFunction<T = void> = (...args: Array<any>) => T;
-
-
-/**
- * Object returned by the logger's `prefix` method that carries a special flag
- * indicating it is a prefix. This is done so that when logging multi-line
- * messages, we can extract prefixes and ensure they are inserted into each
- * line's lead.
- */
-export interface Prefix {
-  [IS_PREFIX]: boolean;
-  toString(): string;
-}
-
-
-// ----- Interactivity ---------------------------------------------------------
-
-/**
- * Callback that will be invoked at each configured interval. This function
- * should call one of the logger's log methods once and only once to produce
- * a new output line that will overwrite the line from the previous interval.
- */
-export type MessageFn = () => any;
-
-
-/**
- * Options object accepted by #beginInteractiveSession
- */
-export interface BeginInteractiveOptions {
-  message: MessageFn;
-
+export interface EnhancedConsola extends Omit<ConsolaInstance, 'create'> {
   /**
-   * (Optional) Number of milliseconds between intervals.
+   * Chalk instance that can be used to style log messages.
    *
-   * Default: 1000 / 30 (30 updates per second)
+   * See: https://github.com/chalk/chalk
    */
-  interval?: number;
-}
-
-
-/**
- * Options object accepted by the function returned by #beginInteractiveSession.
- */
-export interface EndInteractiveOptions {
-  message: MessageFn;
-}
-
-
-/**
- * Function returned by #beginInteractiveSession.
- */
-export type EndInteractiveFn = (options?: MessageFn | EndInteractiveOptions) => void;
-
-
-// ----- Logger ----------------------------------------------------------------
-
-/**
- * Options object accepted by LogFactory and #configure.
- */
-export interface LogOptions {
+  chalk: chalk.Chalk
   /**
-   * Function that should return a writable stream that the logger will use.
+   * Creates a "child" logger using the options provided to this logger. The
+   * `prefix` option is not inherited. If a `debugScope` is provided, it will be
+   * appended to the debug scope of this logger.
+   */
+  create: (options?: Partial<EnhancedConsolaOptions>) => EnhancedConsola
+  /**
+   * Returns a chronograph that can be used to track time.
    *
-   * Default: process.stderr
-   */
-  stream?: NodeJS.WritableStream | false;
-
-  /**
-   * Optional timestamp format. If set to `false`, timestamps will be disabled.
-   * Formatting is done using date-fns#format.
+   * @example
    *
-   * See: https://date-fns.org/v2.1.0/docs/format
+   * const timer = log.createChronograph()
+   * timer.start()
+   * // ... SeVeRaL MoMeNtS LaTeR ...
+   * log.info(`It has been: ${timer}`) // 'It has been: 4s'
    */
-  timestamp?: string;
+  chronograph: () => ReturnType<typeof createChronograph>
 
   /**
-   * Optional heading for all messages logged by the logger.
+   * DOCUMENT
    */
-  heading?: string;
+  maskSecret: (secret: string) => void
 
-  /**
-   * Level to log at.
-   *
-   * Default: process.env.LOG_LEVEL || 'info'
-   */
-  level?: string;
-
-  /**
-   * Whether to normalize whitespace in multi-line strings.
-   *
-   * Default: `true`
-   */
-  stripIndent?: boolean;
-
-  /**
-   * Optional style configuration for the logger.
-   */
-  style?: {
-    /**
-     * Formatter for timestamps.
-     */
-    timestamp?: StyleFunction;
-
-    /**
-     * Formatter for headings.
-     */
-    heading?: StyleFunction;
-
-    /**
-     * Formatter for prefixes.
-     */
-    prefix?: StyleFunction;
-  };
-
-  /**
-   * Optional options to configure the logger's Chalk instance.
-   */
-  chalk?: ChalkOptions;
-
-  /**
-   * Optional custom level definitions. These will be merged with the default
-   * log levels.
-   */
-  levels?: {
-    [key: string]: Partial<LevelDescriptor>;
-  };
-}
-
-
-/**
- * Object returned by LogFactory.
- */
-export interface Logger {
-  /**
-   * Chalk instance for the logger.
-   */
-  chalk: Chalk;
-
-  /**
-   * Merges the provided configuration object with the logger's existing
-   * configuration. This method can be used to add levels, set the current
-   * level, set the current heading, update styles, etc.
-   */
-  configure(newConfig: Partial<LogOptions>): void;
-
-  /**
-   * Returns the LevelDescriptor for the current log level.
-   */
-  getLevel(): LevelDescriptor;
-
-  /**
-   * Returns an object of LevelDescriptors for each level registered with the
-   * logger.
-   */
-  getLevels(): {
-    [key: string]: LevelDescriptor;
-  };
-
-  /**
-   * Returns `true` if a message at the provided log level would be logged based
-   * on the current log level.
-   */
-  isLevelAtLeast(name: string): boolean;
-
-
-  // ----- Utilities -----------------------------------------------------------
-
-  /**
-   * Style the provided string according to the logger's prefix style.
-   */
-  prefix(prefix: Primitive): Prefix;
-
-  /**
-   * Adds a secret to the logger. Any occurrances of matched tokens in messages
-   * will be masked.
-   */
-  addSecret(secret: Primitive | RegExp, maskChar?: string): void;
-
-  /**
-   * Create a pipe that will log anything written to it at the provided log
-   * level.
-   */
-  createPipe(level: string): NodeJS.WritableStream;
-
-  /**
-   * Render a code frame for an error.
-   */
-  codeFrame(err: Error): string;
-
-
-  // ----- Interactivity -------------------------------------------------------
-
-  /**
-   * Begins an interactive line session.
-   */
-  beginInteractive(options: MessageFn | BeginInteractiveOptions): EndInteractiveFn;
-
-  /**
-   * Creates a timer.
-   */
-  createTimer(options?: TimerOptions): Timer;
-
-  /**
-   * Creates a progress bar.
-   */
-  createProgressBar(options: ProgressBarOptions): ProgressBar;
-
-  /**
-   * Creates a spinner.
-   */
-  createSpinner(options?: SpinnerOptions): Spinner;
-
-
-  // ----- Default Log Methods -------------------------------------------------
-
-  /**
-   * Log a message at the 'error' level.
-   */
-  error: LogFunction;
-
-  /**
-   * Log a message at the 'warn' level.
-   */
-  warn: LogFunction;
-
-  /**
-   * Log a message at the 'notice' level.
-   */
-  notice: LogFunction;
-
-  /**
-   * Log a message at the 'http' level.
-   */
-  http: LogFunction;
-
-  /**
-   * Log a message at the 'timing' level.
-   */
-  timing: LogFunction;
-
-  /**
-   * Log a message at the 'info' level.
-   */
-  info: LogFunction;
-
-  /**
-   * Log a message at the 'verbose' level.
-   */
-  verbose: LogFunction;
-
-  /**
-   * Log a message at the 'silly' level.
-   */
-  silly: LogFunction;
+  ora: (options: OraOptions) => Ora
 }

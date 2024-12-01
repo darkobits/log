@@ -23,6 +23,7 @@
     "help": "nr --scripts"
   },
   "dependencies": {
+    "@darkobits/env": "^2.0.0",
     "@darkobits/mask-string": "^3.0.0",
     "@darkobits/sleep": "^3.0.0",
     "chalk": "^4.1.2",

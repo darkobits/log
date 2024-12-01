@@ -1,481 +1,222 @@
-import os from 'os';
-import util from 'util';
-import {Writable} from 'stream';
-
-import env from '@darkobits/env';
-import mask from '@darkobits/mask-string';
-import sleep from '@darkobits/sleep';
-import stripIndent from 'strip-indent';
-import chalk from 'chalk';
-import createCallsiteRecord from 'callsite-record';
-import * as dateFns from 'date-fns';
-import merge from 'deepmerge';
-import IS_CI from 'is-ci';
-import { isPlainObject } from 'is-plain-object';
-import ow from 'ow';
-import sourceMapSupport from 'source-map-support';
-
-import DEFAULT_CONFIG, { DEFAULT_STREAM } from 'etc/config';
-import DEFAULT_STYLE from 'etc/style';
+import env from '@darkobits/env'
+import maskString from '@darkobits/mask-string'
+import sleep from '@darkobits/sleep'
+import chalk from 'chalk'
 import {
-  DEFAULT_FRAME_RATE,
-  DEFAULT_LEVEL_OPTIONS,
-  IS_PREFIX
-} from 'etc/constants';
-import {
-  BeginInteractiveOptions,
-  LevelDescriptor,
-  Logger,
-  LogOptions,
-  Primitive,
-  StyleFunction,
-  EndInteractiveFn,
-  EndInteractiveOptions
-} from 'etc/types';
-import {
-  createOrphanedObject,
-  formatError
-} from 'lib/utils';
-import LogHistoryFactory, {LogHistory} from 'lib/history';
-import isDebugNamespace from 'lib/is-debug-namespace';
-import LogPipe from 'lib/log-pipe';
-import ProgressBarFactory from 'lib/progress-bar';
-import SpinnerFactory from 'lib/spinner';
-import TimerFactory from 'lib/timer';
+  createConsola,
+  LogLevels,
+  type LogType
+} from 'consola'
+import merge from 'deepmerge'
+import ora, { type Ora, type Options as OraOptions } from 'ora'
+import pQueue from 'p-queue'
 
+import { createChronograph, createScopeMatcher } from 'lib/utils'
+
+import type { EnhancedConsolaOptions, EnhancedConsola } from 'etc/types'
+
+const queue = new pQueue({ concurrency: 1 })
 
 /**
- * Provided an options object, returns a logger instance.
+ * @private
+ *
+ * Target time in milliseconds that it should take to flush the message queue
+ * when resuming from being suspended.
  */
-export default function LogFactory(userOptions: Partial<LogOptions> = {}) {
-  /**
-   * Logger instance.
-   */
-  const log = createOrphanedObject<Logger>();
+const RESUME_ANIMATION_TIME = 500
 
-
-  /**
-   * @private
-   *
-   * Base configuration for the logger.
-   */
-  let options = merge<Required<Omit<LogOptions, 'stream'>>>(DEFAULT_CONFIG, DEFAULT_STYLE);
-
-
-  /**
-   * @private
-   *
-   * Secrets added via `#addSecret` that will be masked by the logger.
-   */
-  const secrets: Array<[Primitive | RegExp, string]> = [];
-
+/**
+ * Creates and returns an `EnhancedConsola` instance.
+ */
+export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): EnhancedConsola {
+  const {
+    heading,
+    level,
+    debugScope,
+    debugExpression,
+    chalkOptions,
+    ...restOptions
+  } = options
 
   /**
    * @private
    *
-   * The current stream we are writing to. This can be set to `false` to disable
-   * writing.
+   * List of strings (TODO ADD REGEXP) or patterns that should be redacted from
+   * subsequent log messages.
    */
-  let stream: NodeJS.WritableStream | false;
-
+  const maskedSecrets: Array<string> = []
 
   /**
    * @private
    *
-   * The logger's history ledger.
+   * Just before resuming a queue of suspended messages, the current size of
+   * the queue is captured. This is used to determine a message's relative
+   * position in the queue for the purposes of animations.
    */
-  let history: LogHistory;
+  let queueSizeAtLastResume = 0
+  let hasLoggedEmptyStats = false
 
+  const enhancedConsola = Object.assign(createConsola({
+    level: LogLevels.silent,
+    ...restOptions
+  }), {
+    chalk: new chalk.Instance(chalkOptions),
+    create: (childOptions: Partial<EnhancedConsolaOptions> = {}): EnhancedConsola => {
+      const { heading: parentHeading, ...parentOptions } = options
+      const mergedOptions = merge(parentOptions, childOptions)
 
-  // ----- Private Methods -----------------------------------------------------
-
-  /**
-   * @private
-   *
-   * Provided a log line, returns a new log line with each secret known to
-   * the logger masked.
-   */
-  const maskSecretsInLine = (line: string) => {
-    return secrets.reduce<string>((messageAccumulator, [curSecret, curMaskChar]) => {
-      return mask(String(curSecret), messageAccumulator, curMaskChar);
-    }, line);
-  };
-
-
-  /**
-   * @private
-   *
-   * Provided a log line, writes the line's content to our output stream after
-   * masking any secrets contained therein.
-   */
-  const outputLogLine = (logLine: string) => {
-    history.write(maskSecretsInLine(`${logLine}${os.EOL}`));
-  };
-
-
-  /**
-   * @private
-   *
-   * Provided a token and a function, invokes the function with the token and
-   * the logger's Chalk instance and returns the result.
-   */
-  const styleToken = (token: Primitive | undefined, styleFn: StyleFunction | undefined) => {
-    if (token === undefined) {
-      return;
-    }
-
-    if (typeof styleFn !== 'function') {
-      return token;
-    }
-
-    return styleFn(token as string, log.chalk);
-  };
-
-
-  /**
-   * @private
-   *
-   * Provided a single argument passed to a logging function, returns a
-   * serialized and formatted string representation of the argument.
-   */
-  const formatLogArgument = (arg: any) => {
-    // For strings, return the argument as-is.
-    if (typeof arg === 'string') {
-      if (options.stripIndent) {
-        return stripIndent(arg).trim();
+      mergedOptions.heading = chalk => {
+        const resolvedChildHeading = typeof childOptions.heading === 'function'
+          ? childOptions.heading(chalk)
+          : childOptions.heading
+        return [parentHeading, resolvedChildHeading].join(' ')
       }
 
-      return arg;
-    }
-
-    // For Errors, use `formatError`.
-    if (arg instanceof Error) {
-      return formatError(log.chalk, arg);
-    }
-
-    // For all other arguments, use `util.inspect`.
-    return util.inspect(arg, {colors: true, depth: 20});
-  };
-
-
-  /**
-   * @private
-   *
-   * Provided a log level and an arbitrary number of arguments, returns an array
-   * of strings representing individual lines that should be written to the
-   * logger's output stream.
-   *
-   * This function is responsible for rendering any headings, prefixes, styles,
-   * and applying serialization techniques to arguments.
-   */
-  const convertArgumentsToLines = (level: string, ...args: Array<any>) => {
-    const {heading, levels, style, timestamp} = options;
-
-    ow(levels, 'levels', ow.object.plain);
-    ow(style, 'style', ow.object.plain);
-
-    let prefix = '';
-
-    const lines = args.map(arg => {
-      // If the current argument was produced by invoking log.prefix(), assign
-      // it to `prefix` and return `false`, which will be filtered-out below.
-      if (arg?.[IS_PREFIX]) {
-        prefix = arg;
-        return false;
+      if (options.debugScope || childOptions.debugScope) {
+        mergedOptions.debugScope = options.debugScope && childOptions.debugScope
+          ? [options.debugScope, childOptions.debugScope].filter(Boolean).join(':')
+          : childOptions.debugScope ?? options.debugScope ?? ''
       }
 
-      return formatLogArgument(arg);
-    }).filter(Boolean).join(' ').split(os.EOL);
+      const childLogger = createLogger(mergedOptions)
 
-    // Build the lead for each line.
-    const lead = [
-      // Timestamp
-      timestamp ? styleToken(dateFns.format(new Date(), timestamp), style.timestamp) : false,
-      // Heading
-      styleToken(heading, style.heading),
-      // Level
-      styleToken(levels[level].label, levels[level].style),
-      // Prefix
-      prefix
-    ].filter(Boolean).join(' ');
+      // Child loggers should inherit the masked secrets of their parents.
+      maskedSecrets.forEach(secret => childLogger.maskSecret(secret))
 
-    // Apply lead and prefix, then return an array of finalized lines.
-    return lines.map(line => `${lead} ${line}`);
-  };
+      return childLogger
+    },
+    chronograph: createChronograph,
+    maskSecret: (secret: string) => {
+      if (typeof secret !== 'string' || secret.length === 0) return
+      maskedSecrets.push(secret)
+    },
+    ora: (oraOptions: OraOptions): Ora => {
+      // if (!isNode) {
+      //   const { text } = oraOptions
+      //   enhancedConsola.info(text)
+      //   return
+      // }
 
+      const oraInstance = ora({ ...oraOptions /** , stream: enhancedConsola. */ })
 
-  /**
-   * @private
-   *
-   * Common logic for each logging method created with `addLevel`, where the
-   * only notable distinction is the level for the message.
-   */
-  const handleLogArguments = (level: string, ...args: Array<any>) => {
-    // No-op if the current level is insufficient to allow the incoming message
-    // to be logged.
-    if (!log.isLevelAtLeast(level)) {
-      return;
+      const decorateMethods = ['stop', 'succeed', 'fail', 'warn', 'info', 'stopAndPersist'] as const
+
+      // Decorate Ora methods.
+      decorateMethods.forEach(methodName => {
+        const originalMethod = oraInstance[methodName]
+
+        Reflect.set(oraInstance, methodName, (...args: Parameters<typeof originalMethod>) => {
+          // When any method that stops an Ora spinner is called, resume our
+          // queue which will start flushing pending messages.
+          queueSizeAtLastResume = queue.size
+          hasLoggedEmptyStats = false
+
+          const startEmptyTime = Date.now()
+
+          void queue.onEmpty().then(() => {
+            const emptyTime = Date.now() - startEmptyTime
+
+            if (!hasLoggedEmptyStats) {
+              const { chalk } = enhancedConsola
+              enhancedConsola.debug(`Queue emptied in ${chalk.green(`${emptyTime}ms`)}.`)
+              hasLoggedEmptyStats = true
+            }
+          })
+
+          // enhancedConsola.resumeLogs()
+          queue.start()
+
+          return Reflect.apply(originalMethod, oraInstance, args)
+        })
+      })
+
+      // When an Ora spinner is created, pause our queue, which will cause
+      // messages to wait.
+      // enhancedConsola.pauseLogs()
+      queue.pause()
+      oraInstance.start()
+
+      return oraInstance
     }
+  })
 
-    // Convert our array of arguments into an array of formatted log lines.
-    convertArgumentsToLines(level, ...args).forEach(logLine => {
-      // For each line, write to our history (taking note of whether the line
-      // was produced interactively or not) and write it to the logger's output
-      // stream.
-      outputLogLine(logLine);
-    });
-  };
+  // If we received an async value as our `level` option, wait for it to resolve
+  // then set the logger to that level, if it is valid. Otherwise, set the level
+  // to the value of the LOG_LEVEL environment variable, if valid. Otherwise,
+  // set the level to 'info', the default for Consola. Then, flush all log
+  // messages that may have accumulated while we were waiting.
+  const logLevelPromise = Promise.resolve(level ?? env<LogType>('LOG_LEVEL'))
+    .then(resolvedLevel => {
+      enhancedConsola.level = resolvedLevel && LogLevels[resolvedLevel]
+        ? LogLevels[resolvedLevel]
+        : LogLevels.info
+    })
+    .catch(() => {
+      enhancedConsola.level = LogLevels.info
+    })
 
+  // Asynchronously resolve `debugExpression`.
+  const debugExpressionPromise = Promise.resolve(debugExpression ?? env('DEBUG'))
 
-  /**
-   * @private
-   *
-   * Adds a new level (and logging method) to the logger.
-   */
-  const addLevel = (name: string, levelOptions: LevelDescriptor) => {
-    ow(levelOptions.label, 'label', ow.string);
-    ow(levelOptions.level, 'level', ow.number);
+  // Asynchronously create a predicate to match debug scopes against the current
+  // debug expression.
+  const isAllowedDebugScopePromise = debugExpressionPromise.then(createScopeMatcher)
 
-    // Special-casing for the 'silent' level, which exists in the default log
-    // levels but should not have a corresponding log method.
-    if (name === 'silent') {
-      return;
-    }
+  // Compute the prefix to prepend to log messages.
+  const resolvedHeading = typeof heading === 'function'
+    ? heading(enhancedConsola.chalk)
+    : heading
 
-    // Add method for level.
-    Reflect.set(log, name, (...args: Array<any>) => {
-      handleLogArguments(name, ...args);
-    });
-  };
+  // Decorate log methods.
+  Object.keys(LogLevels).forEach(logLevel => {
+    const originalMethod = Reflect.get(enhancedConsola, logLevel)
+    if (typeof originalMethod !== 'function') return
 
+    Reflect.set(enhancedConsola, logLevel, async (...args: Array<any>) => {
+      const [
+        isAllowedDebugScope,
+        debugExpression
+      ] = await Promise.all([
+        isAllowedDebugScopePromise,
+        debugExpressionPromise,
+        logLevelPromise
+      ])
 
-  /**
-   * @private
-   *
-   * Common logic used by `startInteractive` and `stopInteractive` to handle
-   * producing one or more interactive log lines.
-   */
-  const handleInteractiveWrite = (sessionId: symbol, messageFn: any) => {
-    history.doInteractiveWrite(sessionId, messageFn);
-  };
+      const maskedArgs = args.map(arg => (typeof arg === 'string'
+        ? maskString(maskedSecrets, arg)
+        : arg))
 
-
-  // ----- Public Methods ------------------------------------------------------
-
-  /**
-   * N.B. These methods get their type definitions by virtue of being attached
-   * to the log object.
-   *
-   * See: types.ts
-   */
-
-  log.getLevel = () => {
-    const {level, levels} = options;
-    return {...levels[level]} as LevelDescriptor;
-  };
-
-
-  log.getLevels = () => {
-    const {levels} = options;
-
-    return levels as {
-      [key: string]: LevelDescriptor;
-    };
-  };
-
-
-  log.isLevelAtLeast = name => {
-    const {levels} = options;
-
-    const testLevel = levels[name] as LevelDescriptor;
-
-    if (!testLevel) {
-      throw new Error(`Invalid log level: "${name}".`);
-    }
-
-    return log.getLevel().level >= testLevel.level;
-  };
-
-
-  log.configure = (newOptions = {}) => {
-    // Pluck the 'stream' option from our options object, as it does not play
-    // nice with deepmerge.
-    const streamFromOptions: NodeJS.WritableStream | false | undefined = Reflect.get(newOptions, 'stream');
-    Reflect.deleteProperty(newOptions, 'stream');
-
-    if (streamFromOptions !== undefined) {
-      // If an explicit value was provided in our options, always use it.
-      stream = streamFromOptions;
-    } else if (stream === undefined) {
-      // Otherwise, if the stream has not been set yet, set it to the default
-      // stream.
-      stream = DEFAULT_STREAM;
-    }
-
-    options = merge<Required<Omit<LogOptions, 'stream'>>>(options, newOptions, {
-      isMergeableObject: isPlainObject
-    });
-
-    ow(stream, 'stream', ow.any(ow.undefined, ow.object.instanceOf(Writable), ow.boolean.false));
-    ow(options.levels, 'levels', ow.object.plain);
-
-    // Set the log level.
-    if (options.heading && isDebugNamespace(options.heading)) {
-      options.level = 'silly';
-    } else {
-      options.level = env('LOG_LEVEL') ?? options.level ?? 'info';
-    }
-
-    if (!log.chalk) {
-      // Create a custom Chalk instance for the logger using the provided
-      // options.
-      log.chalk = new chalk.Instance(options.chalk);
-    }
-
-    if (!history) {
-      // Initialize a LogHistory.
-      history = LogHistoryFactory({stream});
-    } else {
-      // Update stream.
-      history.setStream(stream);
-    }
-
-    // Update log level methods.
-    Object.entries(options.levels).forEach(([name, descriptor]) => {
-      if (!Reflect.has(log, name)) {
-        addLevel(name, merge(DEFAULT_LEVEL_OPTIONS, descriptor || {}));
-      }
-    });
-  };
-
-
-  log.prefix = prefix => {
-    let formattedPrefix = prefix;
-    const {style} = options;
-
-    if (style.prefix) {
-      formattedPrefix = styleToken(prefix, style.prefix) ?? prefix;
-    }
-
-    return {
-      [IS_PREFIX]: true,
-      toString: () => formattedPrefix.toString()
-    };
-  };
-
-
-  log.beginInteractive = userInteractiveOptions => {
-    const interactiveOptions: Required<BeginInteractiveOptions> = typeof userInteractiveOptions === 'function'
-      ? { message: userInteractiveOptions, interval: DEFAULT_FRAME_RATE }
-      : merge<Required<BeginInteractiveOptions>>(
-        { interval: DEFAULT_FRAME_RATE },
-        userInteractiveOptions
-      );
-
-    const sessionId = history.beginInteractiveSession();
-
-    const endInteractiveSession: EndInteractiveFn = userStopOptions => {
-      let stopOptions: Partial<EndInteractiveOptions> = {};
-
-      // Merge and validate options.
-      if (typeof userStopOptions === 'function') {
-        stopOptions = {
-          message: userStopOptions
-        };
-      } else if (userStopOptions) {
-        stopOptions = userStopOptions;
+      if (debugExpression && debugScope && ['debug', 'trace'].includes(logLevel)) {
+        if (!isAllowedDebugScope(debugScope ?? '')) return
+        maskedArgs.unshift(enhancedConsola.chalk.magenta.bold(debugScope))
       }
 
-      // If we're in a CI environment, call the provided callback once and then
-      // bail.
-      if (IS_CI && typeof stopOptions.message === 'function') {
-        stopOptions.message();
-        return;
-      }
+      if (resolvedHeading) maskedArgs.unshift(resolvedHeading)
 
-      if (stopOptions && typeof stopOptions.message === 'function') {
-        handleInteractiveWrite(sessionId, stopOptions.message);
-      }
+      // Capture the queue size just before adding; this will be our position in
+      // the queue.
+      const positionInQueue = queue.size
 
-      history.endInteractiveSession(sessionId);
-    };
+      await queue.add(async () => {
+        // We only want to apply a delay to the first N messages, where N is the
+        // number of messages that were enqueued when we resumed.
+        if (queue.size > 1 && positionInQueue <= queueSizeAtLastResume) {
+          await sleep(RESUME_ANIMATION_TIME / queueSizeAtLastResume)
+        }
 
-    // If we're in a CI environment, call the provided callback once and then
-    // bail.
-    if (IS_CI) {
-      interactiveOptions.message();
-      return endInteractiveSession;
-    }
+        Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
+      })
 
-    ow(interactiveOptions.message, 'message', ow.function);
-    ow(interactiveOptions.interval, 'interval', ow.number.positive);
+    })
+  })
 
-    const interactiveLoop = async () => {
-      while (history.hasInteractiveSession(sessionId)) {
-        handleInteractiveWrite(sessionId, interactiveOptions.message);
-        await sleep(interactiveOptions.interval);
-      }
-    };
+  return enhancedConsola
+}
 
-    void interactiveLoop();
-
-    return endInteractiveSession;
-  };
-
-
-  log.addSecret = (secret, maskChar = '*') => {
-    ow(secret, 'secret', ow.any(ow.string, ow.number, ow.boolean, ow.regExp));
-    ow(maskChar, 'mask character', ow.string.minLength(1).maxLength(1));
-    secrets.push([secret, maskChar]);
-  };
-
-
-  log.createPipe = level => {
-    // Validate log level.
-    if (!Object.keys(log.getLevels()).includes(level)) {
-      throw new Error(`Invalid log level: ${level}`);
-    }
-
-    // @ts-ignore
-    return new LogPipe(log[level]);
-  };
-
-
-  log.codeFrame = err => {
-    const callsiteRecord = createCallsiteRecord({
-      forError: err,
-      processFrameFn: frame => {
-        // Avoid `frame.isNative is not a function` errors. This also needs to
-        // return `false` to ensure frames are rendered using source maps.
-        Reflect.defineProperty(frame, 'isNative', {value: () => false});
-        return sourceMapSupport.wrapCallSite(frame);
-      }
-    });
-
-    if (!callsiteRecord) {
-      throw new Error(`Unable to produce a call site record for error: "${err.message}"`);
-    }
-
-    return callsiteRecord.renderSync({
-      stack: false
-    });
-  };
-
-
-  log.createTimer = TimerFactory;
-
-
-  log.createProgressBar = ProgressBarFactory;
-
-
-  log.createSpinner = SpinnerFactory;
-
-
-  // ----- Init ----------------------------------------------------------------
-
-  // Apply user-provided options.
-  log.configure(userOptions);
-
-
-  return log;
+/**
+ * Provided a set of default options, returns a version of `createLogger` that
+ * will use those defaults.
+ */
+export function createLoggerFactory(defaultOptions: Partial<EnhancedConsolaOptions> = {}) {
+  return (options: Partial<EnhancedConsolaOptions> = {}) => createLogger(merge(defaultOptions, options))
 }
