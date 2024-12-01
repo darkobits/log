@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.18](https://github.com/darkobits/log/compare/v2.0.0-beta.17...v2.0.0-beta.18) (2024-12-01)
+
+
+### Features
+
+* Restore LogPipe helper. ([9b2b7dc](https://github.com/darkobits/log/commit/9b2b7dc2b1de4cff3443edb164519010376616a2))
+
 ## [2.0.0-beta.17](https://github.com/darkobits/log/compare/v2.0.0-beta.16...v2.0.0-beta.17) (2024-12-01)
 
 
