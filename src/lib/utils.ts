@@ -3,7 +3,7 @@ import ms from 'ms'
 /**
  * Predicate that always returns true.
  */
-export const noOpPredicate = (testScope: string) => true
+export const noOpPredicate = () => true
 
 /**
  * Provided a valid DEBUG environment variable, returns a predicate that accepts
