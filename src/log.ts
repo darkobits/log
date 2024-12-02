@@ -51,9 +51,10 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
    *
    * Just before resuming a queue of suspended messages, the current size of
    * the queue is captured. This is used to determine a message's relative
-   * position in the queue for the purposes of animations.
+   * position in the queue for the purposes of animations. This number should
+   * never be set to a value lower than 1.
    */
-  let queueSizeAtLastResume = 0
+  let queueSizeAtLastResume = 1
   let hasLoggedEmptyStats = false
 
   const enhancedConsola = Object.assign(createConsola({
@@ -108,7 +109,7 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
         Reflect.set(oraInstance, methodName, (...args: Parameters<typeof originalMethod>) => {
           // When any method that stops an Ora spinner is called, resume our
           // queue which will start flushing pending messages.
-          queueSizeAtLastResume = queue.size
+          queueSizeAtLastResume = Math.max(queue.size, 1)
           hasLoggedEmptyStats = false
 
           const startEmptyTime = Date.now()
