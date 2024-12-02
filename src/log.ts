@@ -10,6 +10,7 @@ import {
 import merge from 'deepmerge'
 import ora, { type Ora, type Options as OraOptions } from 'ora'
 import pQueue from 'p-queue'
+import pWaitFor from 'p-wait-for'
 
 import { createChronograph, createScopeMatcher } from 'lib/utils'
 
@@ -37,6 +38,12 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     chalkOptions,
     ...restOptions
   } = options
+
+  /**
+   * Whether the logger has resolved all async configuration and is ready to
+   * begin logging.
+   */
+  let isReady = false
 
   /**
    * @private
@@ -92,12 +99,6 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
       maskedSecrets.push(secret)
     },
     ora: (oraOptions: OraOptions): Ora => {
-      // if (!isNode) {
-      //   const { text } = oraOptions
-      //   enhancedConsola.info(text)
-      //   return
-      // }
-
       const oraInstance = ora({ ...oraOptions /** , stream: enhancedConsola. */ })
 
       const decorateMethods = ['stop', 'succeed', 'fail', 'warn', 'info', 'stopAndPersist'] as const
@@ -138,6 +139,9 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
       oraInstance.start()
 
       return oraInstance
+    },
+    isReady: () => {
+      return pWaitFor<boolean>(() => isReady)
     }
   })
 
@@ -154,6 +158,9 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     })
     .catch(() => {
       enhancedConsola.level = LogLevels.info
+    })
+    .finally(() => {
+      isReady = true
     })
 
   // Asynchronously resolve `debugExpression`.
