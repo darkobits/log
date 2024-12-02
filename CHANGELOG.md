@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.20](https://github.com/darkobits/log/compare/v2.0.0-beta.19...v2.0.0-beta.20) (2024-12-02)
+
+
+### Bug Fixes
+
+* Only enqueue messages when the queue is un-paused. ([1464c11](https://github.com/darkobits/log/commit/1464c113d1ff43cf82e8bf800e5a28612e56dad9))
+
 ## [2.0.0-beta.19](https://github.com/darkobits/log/compare/v2.0.0-beta.18...v2.0.0-beta.19) (2024-12-02)
 
 
