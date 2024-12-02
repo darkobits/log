@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.21](https://github.com/darkobits/log/compare/v2.0.0-beta.20...v2.0.0-beta.21) (2024-12-02)
+
+
+### Features
+
+* Add  method. ([b2d9b72](https://github.com/darkobits/log/commit/b2d9b7258c25bdfe4a836a8e07670f8d25553a83))
+
 ## [2.0.0-beta.20](https://github.com/darkobits/log/compare/v2.0.0-beta.19...v2.0.0-beta.20) (2024-12-02)
 
 
