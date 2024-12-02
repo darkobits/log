@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.19](https://github.com/darkobits/log/compare/v2.0.0-beta.18...v2.0.0-beta.19) (2024-12-02)
+
+
+### Bug Fixes
+
+* Set correct minimum for queue size. ([7764e1c](https://github.com/darkobits/log/commit/7764e1c6def9efbf204275a68f4b61c54e19e53c))
+
 ## [2.0.0-beta.18](https://github.com/darkobits/log/compare/v2.0.0-beta.17...v2.0.0-beta.18) (2024-12-01)
 
 
