@@ -194,21 +194,29 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
 
       if (resolvedHeading) maskedArgs.unshift(resolvedHeading)
 
-      // Capture the queue size just before adding; this will be our position in
-      // the queue.
-      const positionInQueue = queue.size
-
-      await queue.add(async () => {
-        // We only want to apply a delay to the first N messages, where N is the
-        // number of messages that were enqueued when we resumed.
-        if (queue.size > 1 && positionInQueue <= queueSizeAtLastResume) {
-          await sleep(RESUME_ANIMATION_TIME / queueSizeAtLastResume)
-        }
-
+      if (queue.isPaused) {
         Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
-      })
+      } else {
+        // Capture the queue size just before adding; this will be our position
+        // in the queue.
+        const positionInQueue = queue.size
 
+        await queue.add(async () => {
+          // We only want to apply a delay to the first N messages, where N is
+          // the number of messages that were enqueued when we resumed.
+          if (queue.size > 1 && positionInQueue <= queueSizeAtLastResume) {
+            await sleep(RESUME_ANIMATION_TIME / queueSizeAtLastResume)
+          }
+
+          Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
+        })
+      }
     })
+  })
+
+  process.on('exit', () => {
+    queue.removeAllListeners()
+    queue.clear()
   })
 
   return enhancedConsola
