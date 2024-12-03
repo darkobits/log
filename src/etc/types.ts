@@ -81,7 +81,8 @@ export interface EnhancedConsola extends Omit<ConsolaInstance, 'create'> {
    */
   maskSecret: (secret: string) => void
 
+  /**
+   * DOCUMENT
+   */
   ora: (options: OraOptions) => Ora
-
-  isReady: () => Promise<boolean>
 }

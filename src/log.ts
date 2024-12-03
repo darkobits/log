@@ -1,6 +1,5 @@
 import env from '@darkobits/env'
 import maskString from '@darkobits/mask-string'
-import sleep from '@darkobits/sleep'
 import chalk from 'chalk'
 import {
   createConsola,
@@ -9,22 +8,10 @@ import {
 } from 'consola'
 import merge from 'deepmerge'
 import ora, { type Ora, type Options as OraOptions } from 'ora'
-import pQueue from 'p-queue'
-import pWaitFor from 'p-wait-for'
 
 import { createChronograph, createScopeMatcher } from 'lib/utils'
 
 import type { EnhancedConsolaOptions, EnhancedConsola } from 'etc/types'
-
-const queue = new pQueue({ concurrency: 1 })
-
-/**
- * @private
- *
- * Target time in milliseconds that it should take to flush the message queue
- * when resuming from being suspended.
- */
-const RESUME_ANIMATION_TIME = 500
 
 /**
  * Creates and returns an `EnhancedConsola` instance.
@@ -40,12 +27,6 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
   } = options
 
   /**
-   * Whether the logger has resolved all async configuration and is ready to
-   * begin logging.
-   */
-  let isReady = false
-
-  /**
    * @private
    *
    * List of strings (TODO ADD REGEXP) or patterns that should be redacted from
@@ -53,16 +34,7 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
    */
   const maskedSecrets: Array<string> = []
 
-  /**
-   * @private
-   *
-   * Just before resuming a queue of suspended messages, the current size of
-   * the queue is captured. This is used to determine a message's relative
-   * position in the queue for the purposes of animations. This number should
-   * never be set to a value lower than 1.
-   */
-  let queueSizeAtLastResume = 1
-  let hasLoggedEmptyStats = false
+  let scopeMatcher: ((testScope: string) => boolean) | undefined
 
   const enhancedConsola = Object.assign(createConsola({
     level: LogLevels.silent,
@@ -99,51 +71,42 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
       maskedSecrets.push(secret)
     },
     ora: (oraOptions: OraOptions): Ora => {
+      // isSuspended = true
+      // queue.pause()
+      enhancedConsola.pauseLogs()
+
       const oraInstance = ora({ ...oraOptions /** , stream: enhancedConsola. */ })
 
       const decorateMethods = ['stop', 'succeed', 'fail', 'warn', 'info', 'stopAndPersist'] as const
 
-      // Decorate Ora methods.
+      // Decorate Ora methods that stop spinners such that they also resume logs
+      // after stopping the spinner.
       decorateMethods.forEach(methodName => {
         const originalMethod = oraInstance[methodName]
 
         Reflect.set(oraInstance, methodName, (...args: Parameters<typeof originalMethod>) => {
-          // When any method that stops an Ora spinner is called, resume our
-          // queue which will start flushing pending messages.
-          queueSizeAtLastResume = Math.max(queue.size, 1)
-          hasLoggedEmptyStats = false
-
-          const startEmptyTime = Date.now()
-
-          void queue.onEmpty().then(() => {
-            const emptyTime = Date.now() - startEmptyTime
-
-            if (!hasLoggedEmptyStats) {
-              const { chalk } = enhancedConsola
-              enhancedConsola.debug(`Queue emptied in ${chalk.green(`${emptyTime}ms`)}.`)
-              hasLoggedEmptyStats = true
-            }
-          })
-
-          // enhancedConsola.resumeLogs()
-          queue.start()
-
-          return Reflect.apply(originalMethod, oraInstance, args)
+          const returnValue = Reflect.apply(originalMethod, oraInstance, args)
+          enhancedConsola.resumeLogs()
+          return returnValue
         })
       })
 
-      // When an Ora spinner is created, pause our queue, which will cause
-      // messages to wait.
-      // enhancedConsola.pauseLogs()
-      queue.pause()
       oraInstance.start()
 
       return oraInstance
-    },
-    isReady: () => {
-      return pWaitFor<boolean>(() => isReady)
     }
   })
+
+  // ----- Initialization ------------------------------------------------------
+
+  // Start in a paused state until we resolve config.
+  enhancedConsola.pauseLogs()
+
+  // Asynchronously resolve `debugExpression` and create a scope matcher.
+  const debugExpressionPromise = Promise.resolve(debugExpression ?? env('DEBUG'))
+    .then(resolvedDebugExpression => {
+      scopeMatcher = createScopeMatcher(resolvedDebugExpression)
+    })
 
   // If we received an async value as our `level` option, wait for it to resolve
   // then set the logger to that level, if it is valid. Otherwise, set the level
@@ -159,16 +122,16 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     .catch(() => {
       enhancedConsola.level = LogLevels.info
     })
-    .finally(() => {
-      isReady = true
-    })
 
-  // Asynchronously resolve `debugExpression`.
-  const debugExpressionPromise = Promise.resolve(debugExpression ?? env('DEBUG'))
+  // Wait for all init-related tasks to finish, then resume logging.
+  const initPromise = Promise.all([
+    debugExpressionPromise,
+    logLevelPromise
+  ]).then(() => {
+    enhancedConsola.resumeLogs()
+  })
 
-  // Asynchronously create a predicate to match debug scopes against the current
-  // debug expression.
-  const isAllowedDebugScopePromise = debugExpressionPromise.then(createScopeMatcher)
+  // ----- Decorate Log Methods ------------------------------------------------
 
   // Compute the prefix to prepend to log messages.
   const resolvedHeading = typeof heading === 'function'
@@ -176,54 +139,36 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     : heading
 
   // Decorate log methods.
-  Object.keys(LogLevels).forEach(logLevel => {
+  void (Object.keys(LogLevels) as Array<LogType>).forEach(logLevel => {
     const originalMethod = Reflect.get(enhancedConsola, logLevel)
     if (typeof originalMethod !== 'function') return
 
     Reflect.set(enhancedConsola, logLevel, async (...args: Array<any>) => {
-      const [
-        isAllowedDebugScope,
-        debugExpression
-      ] = await Promise.all([
-        isAllowedDebugScopePromise,
-        debugExpressionPromise,
-        logLevelPromise
-      ])
+      await initPromise
 
       const maskedArgs = args.map(arg => (typeof arg === 'string'
         ? maskString(maskedSecrets, arg)
         : arg))
 
-      if (debugExpression && debugScope && ['debug', 'trace'].includes(logLevel)) {
-        if (!isAllowedDebugScope(debugScope ?? '')) return
-        maskedArgs.unshift(enhancedConsola.chalk.magenta.bold(debugScope))
-      }
+      // Determine whether we should log a given debug or trace message even if
+      // the current log level would not permit it. This will happen if the
+      // logger was configured with a debug scope and debug expression (which
+      // will fall back to the DEBUG environment variable, if set) and the
+      // configured scope matches the configured expression.
+      const shouldLogAsDebugMessage = ['debug', 'trace'].includes(logLevel) &&
+        scopeMatcher?.(debugScope ?? '')
 
-      if (resolvedHeading) maskedArgs.unshift(resolvedHeading)
-
-      if (queue.isPaused) {
+      if (shouldLogAsDebugMessage) {
+        const currentLevel = enhancedConsola.level
+        enhancedConsola.level = LogLevels[logLevel]
+        maskedArgs.unshift(enhancedConsola.chalk.cyan.bold(debugScope))
         Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
+        enhancedConsola.level = currentLevel
       } else {
-        // Capture the queue size just before adding; this will be our position
-        // in the queue.
-        const positionInQueue = queue.size
-
-        await queue.add(async () => {
-          // We only want to apply a delay to the first N messages, where N is
-          // the number of messages that were enqueued when we resumed.
-          if (queue.size > 1 && positionInQueue <= queueSizeAtLastResume) {
-            await sleep(RESUME_ANIMATION_TIME / queueSizeAtLastResume)
-          }
-
-          Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
-        })
+        if (resolvedHeading) maskedArgs.unshift(resolvedHeading)
+        Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
       }
     })
-  })
-
-  process.on('exit', () => {
-    queue.removeAllListeners()
-    queue.clear()
   })
 
   return enhancedConsola
