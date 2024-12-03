@@ -155,7 +155,8 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
       // logger was configured with a debug scope and debug expression (which
       // will fall back to the DEBUG environment variable, if set) and the
       // configured scope matches the configured expression.
-      const shouldLogAsDebugMessage = ['debug', 'trace'].includes(logLevel) &&
+      const shouldLogAsDebugMessage = debugScope &&
+        ['debug', 'trace'].includes(logLevel) &&
         scopeMatcher?.(debugScope ?? '')
 
       if (shouldLogAsDebugMessage) {
