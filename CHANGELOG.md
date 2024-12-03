@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.23](https://github.com/darkobits/log/compare/v2.0.0-beta.22...v2.0.0-beta.23) (2024-12-03)
+
+
+### Bug Fixes
+
+* Ensure `debugScope` is set. ([545c3aa](https://github.com/darkobits/log/commit/545c3aa1ec22024f7a33dc355864cbf54363c06e))
+
 ## [2.0.0-beta.22](https://github.com/darkobits/log/compare/v2.0.0-beta.21...v2.0.0-beta.22) (2024-12-03)
 
 
