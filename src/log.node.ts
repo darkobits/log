@@ -1,24 +1,26 @@
 import env from '@darkobits/env'
 import maskString from '@darkobits/mask-string'
-import chalkModule from 'chalk'
+import { Chalk } from 'chalk'
 import {
   createConsola,
   LogLevels,
   type LogType
 } from 'consola'
 import merge from 'deepmerge'
-import ora, { type Ora, type Options as OraOptions } from 'ora'
 import pWaitFor from 'p-wait-for'
 
-import { IS_NODE } from 'etc/constants'
-import { createChronograph, createScopeMatcher } from 'lib/utils'
+// import { IS_NODE } from 'etc/constants'
+import { chronograph } from 'lib/chronograph'
+import { createSpinner } from 'lib/spinner'
+import { createScopeMatcher } from 'lib/utils'
 
-import type { EnhancedConsolaOptions, EnhancedConsola } from 'etc/types'
+import type { EnhancedConsolaOptions, EnhancedNodeConsola } from 'etc/types'
+import type { Ora, Options as OraOptions } from 'ora'
 
 /**
- * Creates and returns an `EnhancedConsola` instance.
+ * Creates and returns an `EnhancedNodeConsola` instance.
  */
-export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): EnhancedConsola {
+export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): EnhancedNodeConsola {
   const {
     heading,
     level,
@@ -29,14 +31,16 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
   } = options
 
   /**
+   * Chalk instance for this logger.
+   */
+  const chalk = new Chalk(chalkOptions)
+
+  /**
+   * @private
+   *
    * Whether the logger has finished async initialization.
    */
   let isInitialized = false
-
-  /**
-   * Chalk instance for this logger.
-   */
-  const chalk = new chalkModule.Instance(chalkOptions)
 
   /**
    * @private
@@ -58,66 +62,43 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     level: LogLevels.silent,
     ...restOptions
   }), {
-    chalk: new chalk.Instance(chalkOptions),
-    create: (childOptions: Partial<EnhancedConsolaOptions> = {}): EnhancedConsola => {
+    chalk,
+    create: (childOptions: Partial<EnhancedConsolaOptions> = {}): EnhancedNodeConsola => {
       const { heading: parentHeading, ...parentOptions } = options
       const mergedOptions = merge(parentOptions, childOptions)
 
-      // Child loggers have their headings appended to the parent logger's
-      // heading.
+      // Resolve parent and child headings.
       mergedOptions.heading = (chalk, parentConfig) => {
         const resolvedParentHeading = typeof parentHeading === 'function'
           ? parentHeading(chalk, parentConfig)
           : parentHeading
-
         const resolvedChildHeading = typeof childOptions.heading === 'function'
           ? childOptions.heading(chalk, resolvedParentHeading)
           : childOptions.heading
-
         return resolvedChildHeading
       }
 
       const childLogger = createLogger(mergedOptions)
 
-      // Child loggers should inherit the masked secrets of their parents.
+      // Child loggers inherit the masked secrets of their parents.
       maskedSecrets.forEach(secret => childLogger.maskSecret(secret))
 
       return childLogger
     },
-    chronograph: createChronograph,
     maskSecret: (secret: string | RegExp) => {
       // Ignore empty strings.
       if (typeof secret === 'string' && secret.length === 0) return
       maskedSecrets.push(secret)
     },
-    ora: (oraOptions: OraOptions): Ora => {
-      // isSuspended = true
-      // queue.pause()
+    spinner: (oraOptions: OraOptions): Ora => {
       enhancedConsola.pauseLogs()
-
-      const oraInstance = ora({ ...oraOptions /** , stream: enhancedConsola. */ })
-
-      const decorateMethods = ['stop', 'succeed', 'fail', 'warn', 'info', 'stopAndPersist'] as const
-
-      // Decorate Ora methods that stop spinners such that they also resume logs
-      // after stopping the spinner.
-      decorateMethods.forEach(methodName => {
-        const originalMethod = oraInstance[methodName]
-
-        Reflect.set(oraInstance, methodName, (...args: Parameters<typeof originalMethod>) => {
-          const returnValue = Reflect.apply(originalMethod, oraInstance, args)
-          enhancedConsola.resumeLogs()
-          return returnValue
-        })
+      return createSpinner({
+        ...oraOptions,
+        onStop: () => enhancedConsola.resumeLogs()
       })
-
-      oraInstance.start()
-
-      return oraInstance
     },
-    getConfiguration: () => {
-      return Object.freeze(options)
-    },
+    chronograph,
+    getConfiguration: () => Object.freeze(options),
     isReady: () => isInitialized,
     onReady: () => pWaitFor<void>(() => isInitialized)
   })
@@ -129,7 +110,7 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
 
   // Resolve `debugExpression` and create a scope matcher.
   const debugExpressionPromise = Promise.resolve(
-    debugExpression ?? IS_NODE ? env('DEBUG') : undefined
+    debugExpression ?? env('DEBUG')
   ).then(resolvedDebugExpression => {
     scopeMatcher = createScopeMatcher(resolvedDebugExpression)
   })

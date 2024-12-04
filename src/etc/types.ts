@@ -1,12 +1,11 @@
-import chalk from 'chalk'
+import { ChalkInstance, Options as ChalkOptions } from 'chalk'
 import {
   type ConsolaInstance,
   type ConsolaOptions,
   type LogType
 } from 'consola'
 
-import { createChronograph } from 'lib/utils'
-
+import type { chronograph } from 'lib/chronograph'
 import type { Options as OraOptions, Ora } from 'ora'
 
 /**
@@ -16,7 +15,7 @@ export interface EnhancedConsolaOptions extends Omit<ConsolaOptions, 'level'> {
   /**
    * Optional prefix that will appear before log messages.
    */
-  heading?: ((chalk: chalk.Chalk, parentHeading?: string ) => string | undefined) | string | undefined
+  heading?: ((chalk: ChalkInstance, parentHeading?: string ) => string | undefined) | string | undefined
   /**
    * Log level. If this value is a Promise, log messages will be paused
    * until it is resolved.
@@ -45,25 +44,19 @@ export interface EnhancedConsolaOptions extends Omit<ConsolaOptions, 'level'> {
   /**
    * Options to provide to Chalk.
    */
-  chalkOptions?: chalk.Options
+  chalkOptions?: ChalkOptions
 }
 
 /**
- * Value returned from `createLogger`.
+ * Common properties and methods for all variants.
  */
-export interface EnhancedConsola extends Omit<ConsolaInstance, 'create'> {
+export interface EnhancedConsolaCommon extends Omit<ConsolaInstance, 'create'> {
   /**
    * Chalk instance that can be used to style log messages.
    *
    * See: https://github.com/chalk/chalk
    */
-  chalk: chalk.Chalk
-  /**
-   * Creates a "child" logger using the options provided to this logger. The
-   * `prefix` option is not inherited. If a `debugScope` is provided, it will be
-   * appended to the debug scope of this logger.
-   */
-  create: (options?: Partial<EnhancedConsolaOptions>) => EnhancedConsola
+  chalk: ChalkInstance
   /**
    * Returns a chronograph that can be used to track time.
    *
@@ -74,19 +67,51 @@ export interface EnhancedConsola extends Omit<ConsolaInstance, 'create'> {
    * // ... SeVeRaL MoMeNtS LaTeR ...
    * log.info(`It has been: ${timer}`) // 'It has been: 4s'
    */
-  chronograph: () => ReturnType<typeof createChronograph>
-
+  chronograph: () => ReturnType<typeof chronograph>
   /**
-   * DOCUMENT
+   * Provided a string or regular expression, will redact any matches in
+   * subsequent log messages.
+   *
+   * ⚠️ Note: This only works on string arguments passed to a log method.
+   * Objects and other complex values will not be redacted.
    */
   maskSecret: (secret: string | RegExp) => void
-
   /**
-   * DOCUMENT
+   * Returns `true` if the logger has finished initialization.
    */
-  ora: (options: OraOptions) => Ora
-
   isReady: () => boolean
-
+  /**
+   * Returns a `Promise` that resolves when the logger finishes initialization.
+   */
   onReady: () => Promise<void>
+}
+
+/**
+ * The browser version of the logger.
+ */
+export interface EnhancedBrowserConsola extends EnhancedConsolaCommon {
+  /**
+   * Creates a "child" logger using the options provided to this logger. The
+   * `prefix` option is not inherited. If a `debugScope` is provided, it will be
+   * appended to the debug scope of this logger.
+   */
+  create: (options?: Partial<EnhancedConsolaOptions>) => EnhancedBrowserConsola
+}
+
+/**
+ * The Node version of the logger.
+ */
+export interface EnhancedNodeConsola extends EnhancedConsolaCommon {
+  /**
+   * Creates a "child" logger using the options provided to this logger. The
+   * `prefix` option is not inherited. If a `debugScope` is provided, it will be
+   * appended to the debug scope of this logger.
+   */
+  create: (options?: Partial<EnhancedConsolaOptions>) => EnhancedNodeConsola
+  /**
+   * Pause the logger and create an animated spinner using Ora. Optionally add a
+   * message. When the spinner is stopped, any enqueued messages will be flushed
+   * and the logger will un-pause.
+   */
+  spinner: (options: OraOptions) => Ora
 }

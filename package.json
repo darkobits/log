@@ -3,12 +3,13 @@
   "version": "2.0.0-beta.25",
   "description": "The logger that @darkobits uses.",
   "author": "darkobits",
-  "license": "WTFPL",
+  "license": "Hippocratic",
   "type": "module",
   "keywords": [
     "log",
-    "npm",
-    "unique"
+    "logger",
+    "browser",
+    "node"
   ],
   "repository": {
     "type": "git",
@@ -17,7 +18,16 @@
   "files": [
     "dist"
   ],
-  "main": "dist/log.js",
+  "exports": {
+    ".": {
+      "node": "./dist/log.node.js",
+      "browser": "./dist/log.browser.js",
+      "default": "./dist/log.node.js"
+    },
+    "./lib/log-pipe": {
+      "node": "./dist/lib/log-pipe.js"
+    }
+  },
   "scripts": {
     "prepare": "nr prepare",
     "help": "nr --scripts"
@@ -26,7 +36,7 @@
     "@darkobits/env": "^2.0.0",
     "@darkobits/mask-string": "^3.0.0",
     "@darkobits/sleep": "^3.0.0",
-    "chalk": "^4.1.2",
+    "chalk": "^5.3.0",
     "consola": "^3.2.3",
     "deepmerge": "^4.3.1",
     "ms": "^2.1.3",
