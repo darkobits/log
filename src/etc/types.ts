@@ -16,7 +16,7 @@ export interface EnhancedConsolaOptions extends Omit<ConsolaOptions, 'level'> {
   /**
    * Optional prefix that will appear before log messages.
    */
-  heading?: string | undefined | ((chalk: chalk.Chalk) => string | undefined)
+  heading?: ((chalk: chalk.Chalk, parentHeading?: string ) => string | undefined) | string | undefined
   /**
    * Log level. If this value is a Promise, log messages will be paused
    * until it is resolved.
@@ -79,10 +79,14 @@ export interface EnhancedConsola extends Omit<ConsolaInstance, 'create'> {
   /**
    * DOCUMENT
    */
-  maskSecret: (secret: string) => void
+  maskSecret: (secret: string | RegExp) => void
 
   /**
    * DOCUMENT
    */
   ora: (options: OraOptions) => Ora
+
+  isReady: () => boolean
+
+  onReady: () => Promise<void>
 }

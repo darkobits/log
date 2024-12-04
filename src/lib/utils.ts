@@ -1,9 +1,9 @@
 import ms from 'ms'
 
 /**
- * Predicate that always returns true.
+ * Predicate that always returns false.
  */
-export const noOpPredicate = () => true
+export const noOpPredicate = () => false
 
 /**
  * Provided a valid DEBUG environment variable, returns a predicate that accepts

@@ -1,6 +1,6 @@
 import env from '@darkobits/env'
 import maskString from '@darkobits/mask-string'
-import chalk from 'chalk'
+import chalkModule from 'chalk'
 import {
   createConsola,
   LogLevels,
@@ -8,7 +8,9 @@ import {
 } from 'consola'
 import merge from 'deepmerge'
 import ora, { type Ora, type Options as OraOptions } from 'ora'
+import { promiseStateSync } from 'p-state'
 
+import { IS_NODE } from 'etc/constants'
 import { createChronograph, createScopeMatcher } from 'lib/utils'
 
 import type { EnhancedConsolaOptions, EnhancedConsola } from 'etc/types'
@@ -27,13 +29,24 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
   } = options
 
   /**
+   * Chalk instance for this logger.
+   */
+  const chalk = new chalkModule.Instance(chalkOptions)
+
+  /**
    * @private
    *
    * List of strings (TODO ADD REGEXP) or patterns that should be redacted from
    * subsequent log messages.
    */
-  const maskedSecrets: Array<string> = []
+  const maskedSecrets: Array<string | RegExp> = []
 
+  /**
+   * @private
+   *
+   * Function bound to the configured debug expression (or the DEBUG environment
+   * variable) which can be used as a predicate to determine if
+   */
   let scopeMatcher: ((testScope: string) => boolean) | undefined
 
   const enhancedConsola = Object.assign(createConsola({
@@ -45,17 +58,18 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
       const { heading: parentHeading, ...parentOptions } = options
       const mergedOptions = merge(parentOptions, childOptions)
 
-      mergedOptions.heading = chalk => {
-        const resolvedChildHeading = typeof childOptions.heading === 'function'
-          ? childOptions.heading(chalk)
-          : childOptions.heading
-        return [parentHeading, resolvedChildHeading].join(' ')
-      }
+      // Child loggers have their headings appended to the parent logger's
+      // heading.
+      mergedOptions.heading = (chalk, parentConfig) => {
+        const resolvedParentHeading = typeof parentHeading === 'function'
+          ? parentHeading(chalk, parentConfig)
+          : parentHeading
 
-      if (options.debugScope || childOptions.debugScope) {
-        mergedOptions.debugScope = options.debugScope && childOptions.debugScope
-          ? [options.debugScope, childOptions.debugScope].filter(Boolean).join(':')
-          : childOptions.debugScope ?? options.debugScope ?? ''
+        const resolvedChildHeading = typeof childOptions.heading === 'function'
+          ? childOptions.heading(chalk, resolvedParentHeading)
+          : childOptions.heading
+
+        return resolvedChildHeading
       }
 
       const childLogger = createLogger(mergedOptions)
@@ -66,8 +80,9 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
       return childLogger
     },
     chronograph: createChronograph,
-    maskSecret: (secret: string) => {
-      if (typeof secret !== 'string' || secret.length === 0) return
+    maskSecret: (secret: string | RegExp) => {
+      // Ignore empty strings.
+      if (typeof secret === 'string' && secret.length === 0) return
       maskedSecrets.push(secret)
     },
     ora: (oraOptions: OraOptions): Ora => {
@@ -94,6 +109,17 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
       oraInstance.start()
 
       return oraInstance
+    },
+    getConfiguration: () => {
+      return Object.freeze(options)
+    },
+    isReady: () => {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      return promiseStateSync(initPromise) === 'fulfilled'
+    },
+    onReady: () => {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      return Promise.resolve(initPromise)
     }
   })
 
@@ -103,10 +129,12 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
   enhancedConsola.pauseLogs()
 
   // Asynchronously resolve `debugExpression` and create a scope matcher.
-  const debugExpressionPromise = Promise.resolve(debugExpression ?? env('DEBUG'))
-    .then(resolvedDebugExpression => {
-      scopeMatcher = createScopeMatcher(resolvedDebugExpression)
-    })
+  const debugExpressionPromise = Promise.resolve(
+    debugExpression ?? IS_NODE ? env('DEBUG') : undefined
+  ).then(resolvedDebugExpression => {
+    // enhancedConsola.log('debugExpression:', enhancedConsola.chalk.cyan.bold(resolvedDebugExpression))
+    scopeMatcher = createScopeMatcher(resolvedDebugExpression)
+  })
 
   // If we received an async value as our `level` option, wait for it to resolve
   // then set the logger to that level, if it is valid. Otherwise, set the level
@@ -138,37 +166,62 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     ? heading(enhancedConsola.chalk)
     : heading
 
-  // Decorate log methods.
-  void (Object.keys(LogLevels) as Array<LogType>).forEach(logLevel => {
-    const originalMethod = Reflect.get(enhancedConsola, logLevel)
+  const formattedDebugScope = enhancedConsola.chalk.cyan(debugScope)
+
+  void (Object.keys(LogLevels) as Array<LogType>).forEach(logLevelMethodName => {
+    const originalMethod = Reflect.get(enhancedConsola, logLevelMethodName)
     if (typeof originalMethod !== 'function') return
 
-    Reflect.set(enhancedConsola, logLevel, async (...args: Array<any>) => {
-      await initPromise
+    const isDebugOrTrace = ['debug', 'trace'].includes(logLevelMethodName)
 
-      const maskedArgs = args.map(arg => (typeof arg === 'string'
-        ? maskString(maskedSecrets, arg)
-        : arg))
+    // Decorate log method.
+    Reflect.set(enhancedConsola, logLevelMethodName, (...args: Array<any>) => {
+      const isInitialized = promiseStateSync(initPromise) === 'fulfilled'
 
-      // Determine whether we should log a given debug or trace message even if
-      // the current log level would not permit it. This will happen if the
-      // logger was configured with a debug scope and debug expression (which
-      // will fall back to the DEBUG environment variable, if set) and the
-      // configured scope matches the configured expression.
-      const shouldLogAsDebugMessage = debugScope &&
-        ['debug', 'trace'].includes(logLevel) &&
-        scopeMatcher?.(debugScope ?? '')
+      const doLogMessageSync = () => {
+        // Redact any masked secrets from provided string arguments.
+        const maskedArgs = args.map(arg => (
+          typeof arg === 'string' ? maskString(maskedSecrets, arg) : arg)
+        )
 
-      if (shouldLogAsDebugMessage) {
+        let finalArgs = maskedArgs
         const currentLevel = enhancedConsola.level
-        enhancedConsola.level = LogLevels[logLevel]
-        maskedArgs.unshift(enhancedConsola.chalk.cyan.bold(debugScope))
-        Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
+
+        // Determine whether we should log a given debug or trace message even
+        // if the current log level would not permit it. This will happen if the
+        // logger was configured with a debug scope and debug expression (which
+        // will fall back to the DEBUG environment variable, if set) and the
+        // configured scope matches the configured expression.
+        const shouldLogAsDebugMessage = isDebugOrTrace &&
+          scopeMatcher &&
+          debugScope &&
+          scopeMatcher(debugScope)
+
+        if (shouldLogAsDebugMessage) {
+          // Temporarily set the log level to the level of the incoming message.
+          enhancedConsola.level = LogLevels[logLevelMethodName]
+
+          // If we have a heading, prepend the heading and debug scope.
+          // Otherwise, prepend the debug scope only.
+          finalArgs = resolvedHeading
+            ? [resolvedHeading, formattedDebugScope, ...finalArgs]
+            : [formattedDebugScope, ...finalArgs]
+        } else {
+          // If we have a heading, prepend it.
+          if (resolvedHeading) finalArgs = [resolvedHeading, ...finalArgs]
+        }
+
+        // Invoke the original Consola method with our final arguments.
+        Reflect.apply(originalMethod, enhancedConsola, finalArgs)
+
+        // Restore log log level. If we didn't temporarily set it, this will be
+        // a no-op.
         enhancedConsola.level = currentLevel
-      } else {
-        if (resolvedHeading) maskedArgs.unshift(resolvedHeading)
-        Reflect.apply(originalMethod, enhancedConsola, maskedArgs)
       }
+
+      // Only use async if we are not initialized. This ensures more predictable
+      // behavior around ordering of log messages once the logger is ready.
+      return isInitialized ? doLogMessageSync() : initPromise.then(doLogMessageSync)
     })
   })
 
