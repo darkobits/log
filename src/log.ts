@@ -8,7 +8,7 @@ import {
 } from 'consola'
 import merge from 'deepmerge'
 import ora, { type Ora, type Options as OraOptions } from 'ora'
-import { promiseStateSync } from 'p-state'
+import pWaitFor from 'p-wait-for'
 
 import { IS_NODE } from 'etc/constants'
 import { createChronograph, createScopeMatcher } from 'lib/utils'
@@ -27,6 +27,11 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     chalkOptions,
     ...restOptions
   } = options
+
+  /**
+   * Whether the logger has finished async initialization.
+   */
+  let isInitialized = false
 
   /**
    * Chalk instance for this logger.
@@ -113,26 +118,19 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     getConfiguration: () => {
       return Object.freeze(options)
     },
-    isReady: () => {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      return promiseStateSync(initPromise) === 'fulfilled'
-    },
-    onReady: () => {
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      return Promise.resolve(initPromise)
-    }
+    isReady: () => isInitialized,
+    onReady: () => pWaitFor<void>(() => isInitialized)
   })
 
   // ----- Initialization ------------------------------------------------------
 
-  // Start in a paused state until we resolve config.
+  // Start in a paused state until we are finished initializing.
   enhancedConsola.pauseLogs()
 
-  // Asynchronously resolve `debugExpression` and create a scope matcher.
+  // Resolve `debugExpression` and create a scope matcher.
   const debugExpressionPromise = Promise.resolve(
     debugExpression ?? IS_NODE ? env('DEBUG') : undefined
   ).then(resolvedDebugExpression => {
-    // enhancedConsola.log('debugExpression:', enhancedConsola.chalk.cyan.bold(resolvedDebugExpression))
     scopeMatcher = createScopeMatcher(resolvedDebugExpression)
   })
 
@@ -141,15 +139,15 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
   // to the value of the LOG_LEVEL environment variable, if valid. Otherwise,
   // set the level to 'info', the default for Consola. Then, flush all log
   // messages that may have accumulated while we were waiting.
-  const logLevelPromise = Promise.resolve(level ?? env<LogType>('LOG_LEVEL'))
-    .then(resolvedLevel => {
-      enhancedConsola.level = resolvedLevel && LogLevels[resolvedLevel]
-        ? LogLevels[resolvedLevel]
-        : LogLevels.info
-    })
-    .catch(() => {
-      enhancedConsola.level = LogLevels.info
-    })
+  const logLevelPromise = Promise.resolve(
+    level ?? env<LogType>('LOG_LEVEL')
+  ).then(resolvedLevel => {
+    enhancedConsola.level = resolvedLevel && LogLevels[resolvedLevel]
+      ? LogLevels[resolvedLevel]
+      : LogLevels.info
+  }).catch(() => {
+    enhancedConsola.level = LogLevels.info
+  })
 
   // Wait for all init-related tasks to finish, then resume logging.
   const initPromise = Promise.all([
@@ -157,6 +155,7 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
     logLevelPromise
   ]).then(() => {
     enhancedConsola.resumeLogs()
+    isInitialized = true
   })
 
   // ----- Decorate Log Methods ------------------------------------------------
@@ -176,8 +175,6 @@ export function createLogger(options: Partial<EnhancedConsolaOptions> = {}): Enh
 
     // Decorate log method.
     Reflect.set(enhancedConsola, logLevelMethodName, (...args: Array<any>) => {
-      const isInitialized = promiseStateSync(initPromise) === 'fulfilled'
-
       const doLogMessageSync = () => {
         // Redact any masked secrets from provided string arguments.
         const maskedArgs = args.map(arg => (
