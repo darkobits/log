@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.24](https://github.com/darkobits/log/compare/v2.0.0-beta.23...v2.0.0-beta.24) (2024-12-04)
+
+
+### Bug Fixes
+
+* Improve async behavior. ([2d61c6f](https://github.com/darkobits/log/commit/2d61c6f24d619ce1e39b7f2ffdc496e3e497dff5))
+
 ## [2.0.0-beta.23](https://github.com/darkobits/log/compare/v2.0.0-beta.22...v2.0.0-beta.23) (2024-12-03)
 
 
