@@ -9,13 +9,14 @@ import {
 import merge from 'deepmerge'
 import pWaitFor from 'p-wait-for'
 
-// import { IS_NODE } from 'etc/constants'
 import { chronograph } from 'lib/chronograph'
 import { createSpinner } from 'lib/spinner'
 import { createScopeMatcher } from 'lib/utils'
 
 import type { EnhancedConsolaOptions, EnhancedNodeConsola } from 'etc/types'
 import type { Ora, Options as OraOptions } from 'ora'
+
+export { LogPipe } from 'lib/log-pipe'
 
 /**
  * Creates and returns an `EnhancedNodeConsola` instance.

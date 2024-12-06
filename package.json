@@ -23,9 +23,6 @@
       "node": "./dist/log.node.js",
       "browser": "./dist/log.browser.js",
       "default": "./dist/log.node.js"
-    },
-    "./lib/log-pipe": {
-      "node": "./dist/lib/log-pipe.js"
     }
   },
   "scripts": {
