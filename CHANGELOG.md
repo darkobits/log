@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.27](https://github.com/darkobits/log/compare/v2.0.0-beta.26...v2.0.0-beta.27) (2024-12-06)
+
+
+### Bug Fixes
+
+* Fix export maps. ([f01af8b](https://github.com/darkobits/log/commit/f01af8b9b90e8e4da47721a950e42b154c4e066e))
+
 ## [2.0.0-beta.26](https://github.com/darkobits/log/compare/v2.0.0-beta.25...v2.0.0-beta.26) (2024-12-06)
 
 ## [2.0.0-beta.25](https://github.com/darkobits/log/compare/v2.0.0-beta.24...v2.0.0-beta.25) (2024-12-04)
