@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [2.0.0-beta.28](https://github.com/darkobits/log/compare/v2.0.0-beta.27...v2.0.0-beta.28) (2024-12-07)
+
+
+### Features
+
+* Export types from root. ([c9e04df](https://github.com/darkobits/log/commit/c9e04df6f189d1ac3d0978c1985b2840053680a9))
+
 ## [2.0.0-beta.27](https://github.com/darkobits/log/compare/v2.0.0-beta.26...v2.0.0-beta.27) (2024-12-06)
 
 
