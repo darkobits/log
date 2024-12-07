@@ -18,6 +18,8 @@ import type { Ora, Options as OraOptions } from 'ora'
 
 export { LogPipe } from 'lib/log-pipe'
 
+export type { EnhancedConsolaOptions, EnhancedNodeConsola } from 'etc/types'
+
 /**
  * Creates and returns an `EnhancedNodeConsola` instance.
  */

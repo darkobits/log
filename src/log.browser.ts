@@ -13,6 +13,8 @@ import { createScopeMatcher } from 'lib/utils'
 
 import type { EnhancedConsolaOptions, EnhancedBrowserConsola } from 'etc/types'
 
+export type { EnhancedConsolaOptions, EnhancedBrowserConsola } from 'etc/types'
+
 /**
  * Creates and returns an `EnhancedBrowserConsola` instance.
  */
