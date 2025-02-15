@@ -50,7 +50,7 @@ export interface EnhancedConsolaOptions extends Omit<ConsolaOptions, 'level'> {
 /**
  * Common properties and methods for all variants.
  */
-export interface EnhancedConsolaCommon extends Omit<ConsolaInstance, 'create'> {
+export interface EnhancedConsolaCommon<T = void> extends Omit<ConsolaInstance, 'create'> {
   /**
    * Chalk instance that can be used to style log messages.
    *
@@ -58,30 +58,39 @@ export interface EnhancedConsolaCommon extends Omit<ConsolaInstance, 'create'> {
    */
   chalk: ChalkInstance
   /**
-   * Returns a chronograph that can be used to track time.
+   * Returns a chronograph that can be used to track time. Use it as an
+   * interpolated value in a template string literal and it will render its
+   * current value in a human-friendly format.
    *
    * @example
    *
-   * const timer = log.createChronograph()
-   * timer.start()
-   * // ... SeVeRaL MoMeNtS LaTeR ...
-   * log.info(`It has been: ${timer}`) // 'It has been: 4s'
+   * const timer = log.chronograph()
+   *
+   * // ... SeVeRaL HoUrS LaTeR ...
+   *
+   * log.info(`It has been: ${timer}`) // 'It has been: 4h'
    */
   chronograph: () => ReturnType<typeof chronograph>
   /**
-   * Provided a string or regular expression, will redact any matches in
-   * subsequent log messages.
-   *
-   * ⚠️ Note: This only works on string arguments passed to a log method.
-   * Objects and other complex values will not be redacted.
+   * Create a new logger that inherits the configuration of the this logger.
    */
-  maskSecret: (secret: string | RegExp) => void
+  create: (options: Partial<EnhancedConsolaOptions>) => T extends void ? EnhancedConsolaCommon : T
+  /**
+   * Provided a string or regular expression, will redact any matching patterns
+   * in subsequent string arguments provided to log methods.
+   *
+   * ⚠️ Note: For performance reasons, this only operates on string arguments
+   * passed to a log method. Objects and other complex values will not be
+   * redacted.
+   */
+  redact: (pattern: string | RegExp) => void
   /**
    * Returns `true` if the logger has finished initialization.
    */
   isReady: () => boolean
   /**
-   * Returns a `Promise` that resolves when the logger finishes initialization.
+   * Returns a `Promise` that resolves when the logger has finished
+   * initialization.
    */
   onReady: () => Promise<void>
 }
@@ -89,25 +98,12 @@ export interface EnhancedConsolaCommon extends Omit<ConsolaInstance, 'create'> {
 /**
  * The browser version of the logger.
  */
-export interface EnhancedBrowserConsola extends EnhancedConsolaCommon {
-  /**
-   * Creates a "child" logger using the options provided to this logger. The
-   * `prefix` option is not inherited. If a `debugScope` is provided, it will be
-   * appended to the debug scope of this logger.
-   */
-  create: (options?: Partial<EnhancedConsolaOptions>) => EnhancedBrowserConsola
-}
+export type EnhancedBrowserConsola = EnhancedConsolaCommon<EnhancedBrowserConsola>
 
 /**
  * The Node version of the logger.
  */
-export interface EnhancedNodeConsola extends EnhancedConsolaCommon {
-  /**
-   * Creates a "child" logger using the options provided to this logger. The
-   * `prefix` option is not inherited. If a `debugScope` is provided, it will be
-   * appended to the debug scope of this logger.
-   */
-  create: (options?: Partial<EnhancedConsolaOptions>) => EnhancedNodeConsola
+export interface EnhancedNodeConsola extends EnhancedConsolaCommon<EnhancedNodeConsola> {
   /**
    * Pause the logger and create an animated spinner using Ora. Optionally add a
    * message. When the spinner is stopped, any enqueued messages will be flushed
@@ -115,3 +111,5 @@ export interface EnhancedNodeConsola extends EnhancedConsolaCommon {
    */
   spinner: (options: OraOptions) => Ora
 }
+
+export type OnCreate = (childLogger: EnhancedConsolaCommon, parentLogger?: EnhancedConsolaCommon) => void
