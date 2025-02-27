@@ -111,5 +111,3 @@ export interface EnhancedNodeConsola extends EnhancedConsolaCommon<EnhancedNodeC
    */
   spinner: (options: OraOptions) => Ora
 }
-
-export type OnCreate = (childLogger: EnhancedConsolaCommon, parentLogger?: EnhancedConsolaCommon) => void

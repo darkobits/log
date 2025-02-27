@@ -11,14 +11,13 @@ import pWaitFor from 'p-wait-for'
 import { chronograph } from 'lib/chronograph'
 import { createScopeMatcher } from 'lib/utils'
 
-import type { EnhancedConsolaOptions, EnhancedConsolaCommon, OnCreate } from 'etc/types'
+import type { EnhancedConsolaOptions, EnhancedConsolaCommon } from 'etc/types'
 
 /**
  * Creates and returns an `EnhancedBrowserConsola` instance.
  */
 export function createCommonLogger<T extends EnhancedConsolaCommon>(
-  options: Partial<EnhancedConsolaOptions> = {},
-  onCreate?: OnCreate
+  options: Partial<EnhancedConsolaOptions> = {}
 ): T {
   const {
     heading,
@@ -91,18 +90,14 @@ export function createCommonLogger<T extends EnhancedConsolaCommon>(
 
       const childLogger = createCommonLogger<T>(mergedOptions)
 
-      // Child loggers have their level set to that of their parent.
-      if (mergedOptions.level) {
-        console.log('NOT SETTING LEVEL BECAUSE MERGED CONFIG HAS:', mergedOptions.level)
-      } else {
-        console.log('MATCHING CHILD TO PARENTS LEVEL:', enhancedConsola.level)
+      // Child loggers have their level set to that of their parent unless
+      // explicitly provided.
+      if (!mergedOptions.level) {
         childLogger.level = enhancedConsola.level
       }
 
       // Child loggers inherit the masked secrets of their parents.
       redactPatterns.forEach(pattern => childLogger.redact(pattern))
-
-      if (onCreate) onCreate(childLogger, enhancedConsola)
 
       return childLogger
     },
@@ -118,8 +113,6 @@ export function createCommonLogger<T extends EnhancedConsolaCommon>(
   })
 
   // ----- Initialization ------------------------------------------------------
-
-  if (onCreate) onCreate(enhancedConsola)
 
   // Start in a paused state until we are finished initializing.
   enhancedConsola.pauseLogs()
