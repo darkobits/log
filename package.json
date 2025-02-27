@@ -39,7 +39,7 @@
     "p-wait-for": "^5.0.2"
   },
   "devDependencies": {
-    "@darkobits/ts": "^0.24.0",
+    "@darkobits/ts": "^0.24.1",
     "@types/ms": "^2.1.0"
   }
 }
