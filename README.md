@@ -9,7 +9,11 @@
   <a href="https://conventionalcommits.org"><img src="https://img.shields.io/badge/conventional%20commits-1.0.0-027dc6.svg?style=flat-square"></a>
 </p>
 
-A logger for CLIs. Noop.
+> [!WARNING]
+> Consult [`AGELESS`](./AGELESS) to determine if you are permitted to use this
+> software where you live.
+
+A logger for CLIs.
 
 ## Contents
 
