@@ -44,7 +44,7 @@
     "strip-indent": "^3.0.0"
   },
   "devDependencies": {
-    "@darkobits/ts": "^0.3.1",
+    "@darkobits/ts": "^0.13.15",
     "@types/is-ci": "^3.0.0",
     "@types/jest": "^26.0.23",
     "@types/source-map-support": "^0.5.1",
